@@ -151,7 +151,7 @@ class CellVK:
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
 
 	def toString(self):
-		return ""           # TODO toString vk
+		return ""           # TODO toString vk, test fot git rep
 
 
 class CellSubKeysLfLh:
