@@ -16,7 +16,7 @@ class RegistryHeader:
 			print("Отсутствует сигнатура файла улья")
 			exit()
 		self.timestamp = timestamp
-		self.shift = shift
+		self.shift = shift + main_block_size
 		self.name = name.decode("UTF-16")
 
 	def toString(self):
@@ -88,7 +88,7 @@ class CellNK:
 		result = []
 		head = 0
 		while head < len(vl_buf) and len(result) < self.count_value:
-			param = unpack("I", vl_buf[head:head+0x4])[0]
+			param = unpack("I", vl_buf[head:head+0x4])[0] + main_block_size
 			result.append(param)
 			head += 4
 		self.values = result
@@ -136,6 +136,9 @@ class CellVK:
 			return
 		if self.type == 4 or self.type == 5:
 			return
+		if self.value > len(buffer):
+			CellVK.count += 1
+			return
 		vs = self.value + main_block_size
 		size = unpack("i", buffer[vs:vs+0x4])[0]
 		if self.type == 11 and abs(size) == 8:
@@ -167,8 +170,15 @@ class CellSubKeysLfLh:
 		head = 0x8
 		while head < abs(size):
 			shift, crc = unpack("II", buffer[head:head+0x8])
+			shift += main_block_size
 			self.subkeys.append([shift, crc])
 			head += 0x8
+
+	def get_shift(self, num):
+		return self.subkeys[num][0]
+
+	def get_crc(self, num):
+		return self.subkeys[num][1]
 
 
 class CellSubKeysRiLi:
@@ -184,8 +194,12 @@ class CellSubKeysRiLi:
 		head = 0x8
 		while head < abs(size):
 			shift = unpack("I", buffer[head:head+0x4])[0]
+			shift += main_block_size
 			self.subkeys.append(shift)
 			head += 0x4
+
+	def get_shift(self, num):
+		return self.subkeys[num]
 
 
 def create_parser():
@@ -196,11 +210,13 @@ def create_parser():
 	)
 	parser.add_argument("--hive", required=True, help="Путь к файлу улью реестра ОС Windows.")
 	parser.add_argument("-o", "--out", required=True, help="Имя файла для сохранения")
+	parser.add_argument("-p", "--path", help="Путь для извлечения данных улья")
 	return parser
 
 
 def get_first_bytes(buffer, head):
 	return buffer[head:head+0x6]
+
 
 def what_is(buffer):
 	sign, type = unpack("4s2s", buffer)
@@ -211,14 +227,14 @@ def what_is(buffer):
 		return type
 	return None
 
+
 def get_item(type, head, buff):
-	# TODO тут еще надо добавлять в классы значения параметров которые они имеют!
 	if type == b'hbin':
 		return BinHeader(buff[head:head+0x20]), 0x20
 	size = unpack("i", buff[head:head+0x4])[0]
 	if type == b'vk':
 		res = CellVK(buff[head:head+abs(size)])
-		res.set_value(buff)       # TODO setValue()
+		res.set_value(buff)
 		return res, abs(size)
 	if type == b'nk':
 		res = CellNK(buff[head:head+abs(size)])
@@ -233,6 +249,41 @@ def get_item(type, head, buff):
 	return None, 1 if size == 0 else abs(size)
 
 
+def umform(header, registry, path, out):
+	root_sh = get_root(header, registry, path)
+	if root_sh == 0:
+		return
+	queue = [root_sh]
+	with open(out, "w") as file:
+		while len(queue) > 0:
+			cell_sh = queue.pop(0)
+			cell = registry[cell_sh]
+			file.write(cell.toString())
+			queue.extend(get_subkeys(cell_sh, registry))
+
+
+def get_subkeys(parent_sh, registry):
+	queue = []
+	parent = registry[parent_sh]
+	if parent.sign == "nk":
+		for sub_cell_sh in parent.shift_subkey:
+			if registry[sub_cell_sh].sign == "nk":
+				queue.append(sub_cell_sh)
+			else:
+				queue.extend(get_subkeys(sub_cell_sh, registry))
+	else:
+		for num in range(0, len(parent.subkeys)):
+			if registry[parent.get_shift(num)].sign == "nk":
+				queue.append(parent.get_shift(num))
+			else:
+				queue.extend(get_subkeys(parent.get_shift(num), registry))
+	return queue
+
+
+def get_root(header, registry, path):
+	return 1        # TODO
+
+
 def main(namespace):
 	with open(namespace.hive, "rb") as reg:                     # считываем весь бинарный файл улья
 		binary_reg = reg.read()
@@ -244,6 +295,8 @@ def main(namespace):
 		if type is not None:
 			registry[head] = reg_item
 		head += head_inc
+	pass
+	umform(reg_header, registry, namespace.path, namespace.out)
 	pass
 
 
