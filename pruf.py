@@ -20,7 +20,8 @@ class RegistryHeader:
 		self.name = name.decode("UTF-16")
 
 	def toString(self):
-		return ""  # TODO toString regHeader
+		print("RegHeader")
+		return "RegHeader"  # TODO toString regHeader
 
 
 class BinHeader:
@@ -94,7 +95,8 @@ class CellNK:
 		self.values = result
 
 	def toString(self):
-		return ""  # TODO toString nk
+		print("nk")
+		return "Nk"  # TODO toString nk
 
 
 class CellVK:
@@ -154,7 +156,8 @@ class CellVK:
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
 
 	def toString(self):
-		return ""  # TODO toString vk
+		print("vk")
+		return "Vk"  # TODO toString vk
 
 
 class CellSubKeysLfLh:
@@ -290,14 +293,15 @@ def get_root(header, _registry, path):
 	if path_sp[0] == '':
 		path_sp.pop(0)
 	queue = get_subkeys(header.shift, _registry)
-	cell = None
+	cell_sh = None
 	while len(queue) > 0 and len(path_sp) > 0:
 		cell_name = path_sp[0]
-		cell = get_cell(queue.pop(0), _registry)
+		cell_sh = queue.pop(0)
+		cell = get_cell(cell_sh, _registry)
 		if has_name(cell, cell_name):
 			path_sp.pop(0)
-			queue = get_subkeys(cell, _registry)
-	return cell if len(path_sp) > 0 else None
+			queue = get_subkeys(cell_sh, _registry)
+	return 0 if len(path_sp) > 0 else cell_sh
 
 
 def has_name(cell, name):
