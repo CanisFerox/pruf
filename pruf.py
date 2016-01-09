@@ -95,7 +95,7 @@ class CellNK:
 		self.values = result
 
 	def toString(self):
-		print("nk")
+		# print("nk")
 		return "Nk"  # TODO toString nk
 
 
@@ -156,7 +156,7 @@ class CellVK:
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
 
 	def toString(self):
-		print("vk")
+		# print("vk")
 		return "Vk"  # TODO toString vk
 
 
@@ -254,15 +254,24 @@ def umform(reg_header, _registry, path, out):
 	root_sh = get_root(reg_header, _registry, path)
 	if root_sh == 0:
 		return None
+	filled = set()
+	errors = set()
 	queue = [root_sh]
 	with open(out, "w") as file:
 		while len(queue) > 0:
 			cell_sh = queue.pop(0)
+			if cell_sh in filled:
+				errors.add(cell_sh)
+				continue
+			else:
+				filled.add(cell_sh)
+			CellNK.count -= 1
 			cell = get_cell(cell_sh, _registry)
 			file.write(cell.toString())
 			temp = get_subkeys(cell_sh, _registry)
 			temp.extend(queue)
 			queue = temp
+	pass
 
 
 def get_cell(shift, _registry):
@@ -273,18 +282,27 @@ def get_subkeys(parent_sh, _registry):
 	queue = []
 	parent = get_cell(parent_sh, _registry)
 	if parent.sign == b'nk':
-		cell_list = get_cell(parent.shift_subkey, _registry)
+		try:
+			cell_list = get_cell(parent.shift_subkey, _registry)
+		except KeyError:
+			return queue
 		for i in range(0, len(cell_list.subkeys) - 1):
-			if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
-				queue.append(cell_list.get_shift(i))
-			else:
-				queue.extend(get_subkeys(cell_list.get_shift(i), _registry))
+			try:
+				if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
+					queue.append(cell_list.get_shift(i))
+				else:
+					queue.extend(get_subkeys(cell_list.get_shift(i), _registry))
+			except KeyError:
+				pass
 	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
 		for i in range(0, len(parent.subkeys) - 1):
-			if get_cell(parent.get_shift(i), _registry).sign == b'nk':
-				queue.append(parent.get_shift(i))
-			else:
-				queue.extend(get_subkeys(parent.get_shift(i), _registry))
+			try:
+				if get_cell(parent.get_shift(i), _registry).sign == b'nk':
+					queue.append(parent.get_shift(i))
+				else:
+					queue.extend(get_subkeys(parent.get_shift(i), _registry))
+			except KeyError:
+				pass
 	return queue
 
 
