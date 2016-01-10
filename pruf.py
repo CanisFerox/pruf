@@ -19,9 +19,11 @@ class RegistryHeader:
 		self.shift = shift + main_block_size
 		self.name = name.decode("UTF-16")
 
-	def toString(self):
-		print("RegHeader")
-		return "RegHeader"  # TODO toString regHeader
+	def to_string(self):
+		result = "Hive Header" + "\r\n"
+		result += "Timestamp: " + self.timestamp + "\r\n"
+		result += "\r\n"
+		return result
 
 
 class BinHeader:
@@ -69,11 +71,11 @@ class CellNK:
 		self.len_keyname = len_keyname  # длина имени ключа
 		self.len_classname = len_classname  # длина имени класса
 		try:
-			self.name = name.decode("ascii") if flag == 0x20 else name.decode("UTF-16")
+			self.name = name.decode("ascii") if flag == 0x20 else name.decode("UTF-8")
 		except:
 			CellNK.error_count += 1
 			try:
-				self.name = name.decode("ascii") if flag != 0x20 else name.decode("UTF-16")
+				self.name = name.decode("ascii") if flag != 0x20 else name.decode("UTF-8")
 			except:
 				pass
 
@@ -94,9 +96,25 @@ class CellNK:
 			head += 4
 		self.values = result
 
-	def toString(self):
-		# print("nk")
-		return "Nk"  # TODO toString nk
+	def to_string(self, _registry):
+		result = "\r\n"
+		result += "KEY \"" + self.get_name(_registry) + "\"\r\n"
+		result += "Time: " + str(self.timestamp) + "\r\n"
+		result += "Keys: " + str(self.count_subkey) + "\r\n"
+		result += "Values: " + str(self.count_value) + "\r\n"
+		result += "\r\n"
+		return result
+
+	def get_name(self, _registry):
+		result = self.name
+		cell = self
+		while cell is not None:
+			try:
+				cell = get_cell(cell.shift_parent, _registry)
+				result = cell.name + "/" + result
+			except Exception:
+				cell = None
+		return result
 
 
 class CellVK:
@@ -145,19 +163,31 @@ class CellVK:
 		size = unpack("i", buffer[vs:vs + 0x4])[0]
 		if self.type == 11 and abs(size) == 8:
 			value = unpack("q", buffer[vs + 0x4:vs + abs(size)])[0]
-		if self.isString():
+		if self.is_string():
 			pattern = str(self.len_data) + "s"
 			value = unpack(pattern, buffer[vs + 0x4:vs + 0x4 + self.len_data])[0] if size != 0 else ""
 		else:
 			value = buffer[vs + 0x4:vs + 0x4 + self.len_data]
 		self.value = value
 
-	def isString(self):
+	def is_string(self):
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
 
-	def toString(self):
-		# print("vk")
-		return "Vk"  # TODO toString vk
+	def to_string(self):
+		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
+		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_ RESOURCE_DESCRIPTION",
+		              "REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
+		result = "VALUE \"" + self.name + "\"" + "\r\n"
+		if self.type == 4 or self.type == 5:
+			result += "Size: 4 bytes\r\n"
+		elif self.type == 11:
+			result += "Size: 8 bytes\r\n"
+		else:
+			result += "Size: " + str(len(self.value)) + " bytes\r\n"
+		result += "Type: " + value_type[self.type] + "\r\n"
+		result += "Data: " + str(self.value) + "\r\n"
+		result += "\r\n"
+		return result
 
 
 class CellSubKeysLfLh:
@@ -229,22 +259,22 @@ def what_is(buffer):
 	return None
 
 
-def get_item(type, head, buff):
-	if type == b'hbin':
+def get_item(cell_type, head, buff):
+	if cell_type == b'hbin':
 		return BinHeader(buff[head:head + 0x20]), 0x20
 	size = unpack("i", buff[head:head + 0x4])[0]
-	if type == b'vk':
+	if cell_type == b'vk':
 		res = CellVK(buff[head:head + abs(size)])
 		res.set_value(buff)
 		return res, abs(size)
-	if type == b'nk':
+	if cell_type == b'nk':
 		res = CellNK(buff[head:head + abs(size)])
 		res.set_vk_list(buff)
 		return res, abs(size)
-	if type == b'ri' or type == b'li':
+	if cell_type == b'ri' or cell_type == b'li':
 		res = CellSubKeysRiLi(buff[head:head + abs(size)])
 		return res, abs(size)
-	if type == b'lf' or type == b'lh':
+	if cell_type == b'lf' or cell_type == b'lh':
 		res = CellSubKeysLfLh(buff[head:head + abs(size)])
 		return res, abs(size)
 	return None, 1 if size == 0 else abs(size)
@@ -267,7 +297,10 @@ def umform(reg_header, _registry, path, out):
 				filled.add(cell_sh)
 			CellNK.count -= 1
 			cell = get_cell(cell_sh, _registry)
-			file.write(cell.toString())
+			file.write(cell.to_string(_registry))
+			for i in range(0, len(cell.values)):
+				cell_vk = get_cell(cell.values[i], _registry)
+				file.write(cell_vk.to_string())
 			temp = get_subkeys(cell_sh, _registry)
 			temp.extend(queue)
 			queue = temp
@@ -286,7 +319,7 @@ def get_subkeys(parent_sh, _registry):
 			cell_list = get_cell(parent.shift_subkey, _registry)
 		except KeyError:
 			return queue
-		for i in range(0, len(cell_list.subkeys) - 1):
+		for i in range(0, len(cell_list.subkeys)):
 			try:
 				if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
 					queue.append(cell_list.get_shift(i))
@@ -295,7 +328,7 @@ def get_subkeys(parent_sh, _registry):
 			except KeyError:
 				pass
 	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
-		for i in range(0, len(parent.subkeys) - 1):
+		for i in range(0, len(parent.subkeys)):
 			try:
 				if get_cell(parent.get_shift(i), _registry).sign == b'nk':
 					queue.append(parent.get_shift(i))
@@ -347,9 +380,9 @@ def main(ns):
 	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
 	head = 0x1000  # смещение до первого блока
 	while head < len(binary_reg) - 5:
-		type = what_is(get_first_bytes(binary_reg, head))
-		reg_item, head_inc = get_item(type, head, binary_reg)
-		if type is not None:
+		cell_type = what_is(get_first_bytes(binary_reg, head))
+		reg_item, head_inc = get_item(cell_type, head, binary_reg)
+		if cell_type is not None:
 			registry[head] = reg_item
 		head += head_inc
 	umform(reg_header, registry, ns.path, ns.out)
