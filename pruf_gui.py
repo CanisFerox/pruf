@@ -4,7 +4,9 @@ from PyQt5 import QtWidgets
 import argparse
 from struct import unpack
 import sys
+from PyQt5.QtWidgets import QTreeWidgetItem
 from interface import Ui_MainWindow
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 main_block_size = 0x1000
 registry = {}
@@ -14,11 +16,43 @@ class mainForm(Ui_MainWindow):
 		Ui_MainWindow.__init__(self)
 		self.window = QtWidgets.QMainWindow()
 		self.setupUi(self.window)
-		# self.open_action.clicked.connect(self.test)
+		self.open_action.triggered.connect(self.open_action_func)
 		self.window.show()
 
-	def test(self):
-		print("somesoemsome")
+	def open_action_func(self):
+		fname = QtWidgets.QFileDialog.getOpenFileName(self.window, 'Open file', '/home')
+		if not fname[0]:
+			return
+		column = 0
+		header, registry = load_hive(fname[0])
+		reg_root = get_cell(header.shift, registry)
+		root = self.add_parent(self.treeWidget.invisibleRootItem(), column, header.name, 999)
+		queue_sh = [header.shift]
+		queue_item = [root]
+		while len(queue_sh) > 0:
+			cell_sh = queue_sh.pop(0)
+			parent = queue_item.pop(0)
+			for child_sh in get_subkeys(cell_sh, registry):
+				child = get_cell(child_sh, registry)
+				if child is None:
+					continue
+				node = self.add_child(parent, child)
+				queue_sh.append(child_sh)
+				queue_item.append(node)
+
+	def add_parent(self, parent, column, title, data):
+		item = QTreeWidgetItem(parent, [title])
+		item.setData(column, QtCore.Qt.UserRole, data)
+		item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
+		# item.setExpanded(True)
+		return item
+
+	def add_child(self, parent, child):
+		item = QTreeWidgetItem(parent, [child.name])
+		item.setData(0, QtCore.Qt.UserRole, 111)    # тут надо добвлять смещение
+		# item.setCheckState(0, QtCore.Qt.Unchecked)
+		return item
+
 
 ############## BEGIN ##############
 
@@ -389,6 +423,19 @@ def has_name(cell, name):
 	return name == cell.name
 
 ############## END ##############
+
+def load_hive(hive):
+	with open(hive, "rb") as reg:  # считываем весь бинарный файл улья
+		binary_reg = reg.read()
+	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
+	head = 0x1000  # смещение до первого блока
+	while head < len(binary_reg) - 5:
+		cell_type = what_is(get_first_bytes(binary_reg, head))
+		reg_item, head_inc = get_item(cell_type, head, binary_reg)
+		if cell_type is not None:
+			registry[head] = reg_item
+		head += head_inc
+	return reg_header, registry
 
 def main():
 	# with open(ns.hive, "rb") as reg:  # считываем весь бинарный файл улья
