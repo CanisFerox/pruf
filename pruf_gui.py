@@ -4,19 +4,25 @@ from PyQt5 import QtWidgets
 import argparse
 from struct import unpack
 import sys
-from PyQt5.QtWidgets import QTreeWidgetItem
+import binascii
 from interface import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QTreeWidgetItem, QTableWidgetItem
+from datetime import datetime, timedelta
 
 main_block_size = 0x1000
 registry = {}
+
 
 class mainForm(Ui_MainWindow):
 	def __init__(self):
 		Ui_MainWindow.__init__(self)
 		self.window = QtWidgets.QMainWindow()
 		self.setupUi(self.window)
+		self.registry = None
+		self.mode_value.setText("Все")
 		self.open_action.triggered.connect(self.open_action_func)
+		self.treeWidget.clicked.connect(self.tree_item_click)
 		self.window.show()
 
 	def open_action_func(self):
@@ -25,18 +31,16 @@ class mainForm(Ui_MainWindow):
 			return
 		column = 0
 		header, registry = load_hive(fname[0])
-		reg_root = get_cell(header.shift, registry)
-		root = self.add_parent(self.treeWidget.invisibleRootItem(), column, header.name, 999)
+		self.registry = registry
+		tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), column, header.name, header.shift)
 		queue_sh = [header.shift]
-		queue_item = [root]
+		queue_item = [tree_root]
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
 			for child_sh in get_subkeys(cell_sh, registry):
 				child = get_cell(child_sh, registry)
-				if child is None:
-					continue
-				node = self.add_child(parent, child)
+				node = self.add_child(parent, child.name, child_sh)
 				queue_sh.append(child_sh)
 				queue_item.append(node)
 
@@ -47,11 +51,42 @@ class mainForm(Ui_MainWindow):
 		# item.setExpanded(True)
 		return item
 
-	def add_child(self, parent, child):
-		item = QTreeWidgetItem(parent, [child.name])
-		item.setData(0, QtCore.Qt.UserRole, 111)    # тут надо добвлять смещение
+	def add_child(self, parent, name, data):
+		item = QTreeWidgetItem(parent, [name])
+		item.setData(0, QtCore.Qt.UserRole, data)  # тут надо добвлять смещение
 		# item.setCheckState(0, QtCore.Qt.Unchecked)
 		return item
+
+	def tree_item_click(self):
+		selected = self.treeWidget.selectedItems()
+		if len(selected) > 1:
+			return
+		selected = selected[0]
+		shift = selected.data(0, QtCore.Qt.UserRole)
+		cell = get_cell(shift, self.registry)
+		subeys = get_subkeys(shift, self.registry, set())
+		self.nk_value.setText(str(len(subeys)))
+		self.nk_value.repaint()
+		self.vk_value.setText(str(cell.count_value))
+		self.vk_value.repaint()
+		self.timestamp_value.setText(str(datetime(1601, 1, 1) + timedelta(microseconds=cell.timestamp / 10)))
+		self.timestamp.repaint()
+		self.cell_shift_value.setText(str(shift))
+		self.cell_shift_value.repaint()
+		for i in range(0, self.tableWidget.rowCount()):
+			self.tableWidget.removeRow(i)
+		row_num = 0
+		for value_sh in cell.values:
+			try:
+				value_cell = get_cell(value_sh, self.registry)
+			except KeyError:
+				continue
+			self.tableWidget.insertRow(row_num)
+			self.tableWidget.setItem(row_num, 0, QTableWidgetItem(value_cell.name))
+			self.tableWidget.setItem(row_num, 1, QTableWidgetItem(value_cell.get_type()))
+			self.tableWidget.setItem(row_num, 2, QTableWidgetItem(str(value_cell.get_data_size())))
+			self.tableWidget.setItem(row_num, 3, QTableWidgetItem(value_cell.get_data()))
+			row_num += 1
 
 
 ############## BEGIN ##############
@@ -222,19 +257,35 @@ class CellVK:
 	def is_string(self):
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
 
-	def to_string(self):
+	def get_type(self):
 		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
-		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_ RESOURCE_DESCRIPTION",
+		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
 		              "REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
-		result = "VALUE \"" + self.name + "\"" + "\r\n"
+		return value_type[self.type]
+
+	def get_data_size(self):
 		if self.type == 4 or self.type == 5:
-			result += "Size: 4 bytes\r\n"
+			size = 4
 		elif self.type == 11:
-			result += "Size: 8 bytes\r\n"
+			size = 8
 		else:
-			result += "Size: " + str(len(self.value)) + " bytes\r\n"
-		result += "Type: " + value_type[self.type] + "\r\n"
-		result += "Data: " + str(self.value) + "\r\n"
+			size = len(self.value)
+		return size
+
+	def get_data(self):
+		if self.type == 4 or self.type == 5 or self.type == 11:
+			data = str(self.value)
+		elif self.type == 1 or self.type == 2 or self.type == 7:
+			data = self.value
+		else:
+			data = binascii.b2a_hex(self.value)
+		return str(data)
+
+	def to_string(self):
+		result = "VALUE \"" + self.name + "\"" + "\r\n"
+		result += "Size: " + str(self.get_data_size()) + " bytes\r\n"
+		result += "Type: " + self.get_type() + "\r\n"
+		result += "Data: " + self.get_data() + "\r\n"
 		result += "\r\n"
 		return result
 
@@ -360,8 +411,12 @@ def get_cell(shift, _registry):
 	return _registry[shift]
 
 
-def get_subkeys(parent_sh, _registry):
+def get_subkeys(parent_sh, _registry, marked=set()):
 	queue = []
+	if parent_sh in marked:
+		return queue
+	else:
+		marked.add(parent_sh)
 	parent = get_cell(parent_sh, _registry)
 	if parent.sign == b'nk':
 		try:
@@ -373,7 +428,7 @@ def get_subkeys(parent_sh, _registry):
 				if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
 					queue.append(cell_list.get_shift(i))
 				else:
-					queue.extend(get_subkeys(cell_list.get_shift(i), _registry))
+					queue.extend(get_subkeys(cell_list.get_shift(i), _registry, marked))
 			except KeyError:
 				pass
 	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
@@ -382,7 +437,7 @@ def get_subkeys(parent_sh, _registry):
 				if get_cell(parent.get_shift(i), _registry).sign == b'nk':
 					queue.append(parent.get_shift(i))
 				else:
-					queue.extend(get_subkeys(parent.get_shift(i), _registry))
+					queue.extend(get_subkeys(parent.get_shift(i), _registry, marked))
 			except KeyError:
 				pass
 	return queue
@@ -463,5 +518,3 @@ if __name__ == "__main__":
 
 
 ################################  INTERFACE  ##################################
-
-

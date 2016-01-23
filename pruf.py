@@ -2,6 +2,7 @@
 
 import argparse
 from struct import unpack
+import binascii
 
 main_block_size = 0x1000
 registry = {}
@@ -173,19 +174,35 @@ class CellVK:
 	def is_string(self):
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
 
-	def to_string(self):
+	def get_type(self):
 		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
-		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_ RESOURCE_DESCRIPTION",
+		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
 		              "REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
-		result = "VALUE \"" + self.name + "\"" + "\r\n"
+		return value_type[self.type]
+
+	def get_data_size(self):
 		if self.type == 4 or self.type == 5:
-			result += "Size: 4 bytes\r\n"
+			size = 4
 		elif self.type == 11:
-			result += "Size: 8 bytes\r\n"
+			size = 8
 		else:
-			result += "Size: " + str(len(self.value)) + " bytes\r\n"
-		result += "Type: " + value_type[self.type] + "\r\n"
-		result += "Data: " + str(self.value) + "\r\n"
+			size = len(self.value)
+		return size
+
+	def get_data(self):
+		if self.type == 4 or self.type == 5 or self.type == 11:
+			data = str(self.value)
+		elif self.type == 1 or self.type == 2 or self.type == 7:
+			data = self.value
+		else:
+			data = binascii.b2a_hex(self.value)
+		return str(data)
+
+	def to_string(self):
+		result = "VALUE \"" + self.name + "\"" + "\r\n"
+		result += "Size: " + str(self.get_data_size()) + " bytes\r\n"
+		result += "Type: " + self.get_type() + "\r\n"
+		result += "Data: " + self.get_data() + "\r\n"
 		result += "\r\n"
 		return result
 
@@ -311,8 +328,12 @@ def get_cell(shift, _registry):
 	return _registry[shift]
 
 
-def get_subkeys(parent_sh, _registry):
+def get_subkeys(parent_sh, _registry, marked=set()):
 	queue = []
+	if parent_sh in marked:
+		return queue
+	else:
+		marked.add(parent_sh)
 	parent = get_cell(parent_sh, _registry)
 	if parent.sign == b'nk':
 		try:
@@ -324,7 +345,7 @@ def get_subkeys(parent_sh, _registry):
 				if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
 					queue.append(cell_list.get_shift(i))
 				else:
-					queue.extend(get_subkeys(cell_list.get_shift(i), _registry))
+					queue.extend(get_subkeys(cell_list.get_shift(i), _registry, marked))
 			except KeyError:
 				pass
 	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
@@ -333,7 +354,7 @@ def get_subkeys(parent_sh, _registry):
 				if get_cell(parent.get_shift(i), _registry).sign == b'nk':
 					queue.append(parent.get_shift(i))
 				else:
-					queue.extend(get_subkeys(parent.get_shift(i), _registry))
+					queue.extend(get_subkeys(parent.get_shift(i), _registry, marked))
 			except KeyError:
 				pass
 	return queue
