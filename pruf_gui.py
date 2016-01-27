@@ -2,9 +2,10 @@
 from PyQt5 import QtWidgets
 
 import argparse
-from struct import unpack
+from struct import unpack, pack
 import sys
 import binascii
+import re
 from interface import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QTreeWidgetItem, QTableWidgetItem
@@ -20,8 +21,14 @@ class mainForm(Ui_MainWindow):
 		self.window = QtWidgets.QMainWindow()
 		self.setupUi(self.window)
 		self.registry = None
+		self.tree_root = None
 		self.mode_value.setText("Все")
 		self.open_action.triggered.connect(self.open_action_func)
+		self.export_a_action.triggered.connect(self.export_a_action_func)
+		self.export_m_action.triggered.connect(self.export_m_action_func)
+		self.value_search_action.triggered.connect(self.search_func)
+		self.about.triggered.connect(self.about_func)
+		self.exit_action.triggered.connect(self.exit_func)
 		self.treeWidget.clicked.connect(self.tree_item_click)
 		self.window.show()
 
@@ -32,9 +39,9 @@ class mainForm(Ui_MainWindow):
 		column = 0
 		header, registry = load_hive(fname[0])
 		self.registry = registry
-		tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), column, header.name, header.shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), column, header.name, header.shift)
 		queue_sh = [header.shift]
-		queue_item = [tree_root]
+		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
@@ -73,7 +80,8 @@ class mainForm(Ui_MainWindow):
 		self.timestamp.repaint()
 		self.cell_shift_value.setText(str(shift))
 		self.cell_shift_value.repaint()
-		for i in range(0, self.tableWidget.rowCount()):
+		# удаление строк таблицы с конца, т.к. при удалении первой строки таблица перестраивается
+		for i in reversed(range(0, self.tableWidget.rowCount())):
 			self.tableWidget.removeRow(i)
 		row_num = 0
 		for value_sh in cell.values:
@@ -88,6 +96,31 @@ class mainForm(Ui_MainWindow):
 			self.tableWidget.setItem(row_num, 3, QTableWidgetItem(value_cell.get_data()))
 			row_num += 1
 
+	def export_a_action_func(self):
+		fname = QtWidgets.QFileDialog.getSaveFileName(self.window, 'Open file', '/home')
+		selected = self.treeWidget.selectedItems()
+		if len(selected) > 1:
+			return
+		selected = selected[0]
+		shift = selected.data(0, QtCore.Qt.UserRole)
+		path = get_cell(shift, self.registry).get_name(self.registry)
+		root = get_root(self.registry, path)
+		if root == None:
+			raise "Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path"
+		umform(self.registry[0], self.registry, path, fname)
+		pass
+
+	def export_m_action_func(self):
+		pass
+
+	def search_func(self):
+		pass
+
+	def about_func(self):
+		pass
+
+	def exit_func(self):
+		pass
 
 ############## BEGIN ##############
 
@@ -192,13 +225,13 @@ class CellNK:
 	def get_name(self, _registry):
 		result = self.name
 		cell = self
-		while cell is not None:
+		while cell is not None and cell.shift_parent != _registry[0].shift:
 			try:
 				cell = get_cell(cell.shift_parent, _registry)
 				result = cell.name + "/" + result
 			except Exception:
 				cell = None
-		return result
+		return _registry[0].name + "/" + result
 
 
 class CellVK:
@@ -222,6 +255,7 @@ class CellVK:
 		self.len_valname = len_valname  # длина имени параметра
 		self.len_data = len_data  # длина данных
 		self.value = pointer  # данные или указатель на них
+		self.value_shift = pointer
 		# if self.value > 12320767 and not deleted:
 		# 	CellVK.error_count += 1
 		# 	pass
@@ -242,6 +276,12 @@ class CellVK:
 			return
 		if self.value > len(buffer):
 			# CellVK.count += 1
+			return
+		if self.len_data == 4 and self.type == 1:
+			self.value = pack("I", self.value).decode("ascii")
+			return
+		elif self.len_data < 4 and self.type == 1:
+			self.value = pack("H", self.value).decode("ascii")
 			return
 		vs = self.value + main_block_size
 		size = unpack("i", buffer[vs:vs + 0x4])[0]
@@ -273,12 +313,18 @@ class CellVK:
 		return size
 
 	def get_data(self):
-		if self.type == 4 or self.type == 5 or self.type == 11:
-			data = str(self.value)
+		if self.type == 4 or self.type == 5:
+			data = "0x" + str(hex(self.value))[2:].zfill(8)
+		elif self.type == 11:
+			data = "0x" + str(hex(self.value))[2:].zfill(16)
 		elif self.type == 1 or self.type == 2 or self.type == 7:
-			data = self.value
+			if isinstance(self.value, str):
+				return self.value
+			else:
+				data = self.value.decode("ascii") if len(self.value) != 0 else ""
 		else:
-			data = binascii.b2a_hex(self.value)
+			data = binascii.b2a_hex(self.value).decode("ascii")
+			data = re.sub(r'(..)', r'\1 ', data)
 		return str(data)
 
 	def to_string(self):
@@ -381,7 +427,7 @@ def get_item(cell_type, head, buff):
 
 
 def umform(reg_header, _registry, path, out):
-	root_sh = get_root(reg_header, _registry, path)
+	root_sh = get_root(_registry, path)
 	if root_sh == 0:
 		return None
 	filled = set()
@@ -443,11 +489,15 @@ def get_subkeys(parent_sh, _registry, marked=set()):
 	return queue
 
 
-def get_root(header, _registry, path):
+def get_root(_registry, path):
 	path_sp = path.split("/")
 	if path_sp[0] == '':
 		path_sp.pop(0)
-	queue = get_subkeys(header.shift, _registry)
+	if _registry[0].name != path_sp.pop(0):
+		return None
+	if len(path_sp) == 0:
+		return _registry[0].shift
+	queue = get_subkeys(_registry[0].shift, _registry)
 	cell_sh = None
 	while len(queue) > 0 and len(path_sp) > 0:
 		cell_name = path_sp[0]
@@ -456,25 +506,25 @@ def get_root(header, _registry, path):
 		if has_name(cell, cell_name):
 			path_sp.pop(0)
 			queue = get_subkeys(cell_sh, _registry)
-	return 0 if len(path_sp) > 0 else cell_sh
+	return None if len(path_sp) > 0 else cell_sh
 
 
 def has_name(cell, name):
-	ns_1 = {'HKEY_CURRENT_USER', 'HKCU'}
-	ns_2 = {'HKEY_USERS', 'HKU'}
-	ns_3 = {'HKEY_LOCAL_MACHINE', 'HKLM'}
-	ns_4 = {'HKEY_CLASSES_ROOT', 'HKCR'}
-	ns_5 = {'HKEY_CURRENT_CONFIG'}
-	if cell.name in ns_1 and name in ns_1:
-		return True
-	if cell.name in ns_2 and name in ns_2:
-		return True
-	if cell.name in ns_3 and name in ns_3:
-		return True
-	if cell.name in ns_4 and name in ns_4:
-		return True
-	if cell.name in ns_5 and name in ns_5:
-		return True
+	# ns_1 = {'HKEY_CURRENT_USER', 'HKCU'}
+	# ns_2 = {'HKEY_USERS', 'HKU'}
+	# ns_3 = {'HKEY_LOCAL_MACHINE', 'HKLM'}
+	# ns_4 = {'HKEY_CLASSES_ROOT', 'HKCR'}
+	# ns_5 = {'HKEY_CURRENT_CONFIG'}
+	# if cell.name in ns_1 and name in ns_1:
+	# 	return True
+	# if cell.name in ns_2 and name in ns_2:
+	# 	return True
+	# if cell.name in ns_3 and name in ns_3:
+	# 	return True
+	# if cell.name in ns_4 and name in ns_4:
+	# 	return True
+	# if cell.name in ns_5 and name in ns_5:
+	# 	return True
 	return name == cell.name
 
 ############## END ##############
@@ -483,6 +533,7 @@ def load_hive(hive):
 	with open(hive, "rb") as reg:  # считываем весь бинарный файл улья
 		binary_reg = reg.read()
 	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
+	registry[0] = reg_header
 	head = 0x1000  # смещение до первого блока
 	while head < len(binary_reg) - 5:
 		cell_type = what_is(get_first_bytes(binary_reg, head))

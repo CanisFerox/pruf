@@ -399,6 +399,7 @@ def main(ns):
 	with open(ns.hive, "rb") as reg:  # считываем весь бинарный файл улья
 		binary_reg = reg.read()
 	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
+	registry[0] = reg_header
 	head = 0x1000  # смещение до первого блока
 	while head < len(binary_reg) - 5:
 		cell_type = what_is(get_first_bytes(binary_reg, head))

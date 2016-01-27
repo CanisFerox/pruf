@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'interface.ui'
 #
-# Created: Tue Jan 19 23:29:37 2016
+# Created: Sun Jan 24 23:46:48 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -220,12 +220,17 @@ class Ui_MainWindow(object):
         self.export_m_action.setObjectName("export_m_action")
         self.search_action = QtWidgets.QAction(MainWindow)
         self.search_action.setObjectName("search_action")
+        self.save_action = QtWidgets.QAction(MainWindow)
+        self.save_action.setObjectName("save_action")
+        self.value_search_action = QtWidgets.QAction(MainWindow)
+        self.value_search_action.setObjectName("value_search_action")
         self.export_2.addAction(self.export_a_action)
         self.export_2.addAction(self.export_m_action)
         self.file.addAction(self.open_action)
+        self.file.addAction(self.save_action)
         self.file.addAction(self.export_2.menuAction())
         self.file.addAction(self.exit_action)
-        self.search.addAction(self.search_action)
+        self.search.addAction(self.value_search_action)
         self.view_mode.addAction(self.view_deleted)
         self.view_mode.addAction(self.view_nondeleted)
         self.view_mode.addAction(self.view_all)
@@ -258,7 +263,7 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "Значение"))
         self.file.setTitle(_translate("MainWindow", "Файл"))
         self.export_2.setTitle(_translate("MainWindow", "Экспорт"))
-        self.search.setTitle(_translate("MainWindow", "Поиск..."))
+        self.search.setTitle(_translate("MainWindow", "Поиск"))
         self.view.setTitle(_translate("MainWindow", "Вид"))
         self.view_mode.setTitle(_translate("MainWindow", "Режим отображения"))
         self.help.setTitle(_translate("MainWindow", "Помощь"))
@@ -273,4 +278,6 @@ class Ui_MainWindow(object):
         self.export_a_action.setText(_translate("MainWindow", "Формат -a (машинный)"))
         self.export_m_action.setText(_translate("MainWindow", "Формат -m (визуальный)"))
         self.search_action.setText(_translate("MainWindow", "Поиск"))
+        self.save_action.setText(_translate("MainWindow", "Сохранить"))
+        self.value_search_action.setText(_translate("MainWindow", "Поиск..."))
 
