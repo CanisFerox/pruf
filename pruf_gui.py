@@ -98,6 +98,8 @@ class mainForm(Ui_MainWindow):
 
 	def export_a_action_func(self):
 		fname = QtWidgets.QFileDialog.getSaveFileName(self.window, 'Open file', '/home')
+		fname = str(fname[0])
+		print(fname)
 		selected = self.treeWidget.selectedItems()
 		if len(selected) > 1:
 			return
@@ -107,10 +109,23 @@ class mainForm(Ui_MainWindow):
 		root = get_root(self.registry, path)
 		if root == None:
 			raise "Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path"
-		umform(self.registry[0], self.registry, path, fname)
+		umform(self.registry[0], self.registry, path, fname, True)
 		pass
 
 	def export_m_action_func(self):
+		fname = QtWidgets.QFileDialog.getSaveFileName(self.window, 'Open file', '/home')
+		fname = str(fname[0])
+		print(fname)
+		selected = self.treeWidget.selectedItems()
+		if len(selected) > 1:
+			return
+		selected = selected[0]
+		shift = selected.data(0, QtCore.Qt.UserRole)
+		path = get_cell(shift, self.registry).get_name(self.registry)
+		root = get_root(self.registry, path)
+		if root == None:
+			raise "Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path"
+		umform(self.registry[0], self.registry, path, fname, False)
 		pass
 
 	def search_func(self):
@@ -213,12 +228,18 @@ class CellNK:
 			head += 4
 		self.values = result
 
-	def to_string(self, _registry):
+	def to_string(self, _registry, is_machine):
 		result = "\r\n"
-		result += "KEY \"" + self.get_name(_registry) + "\"\r\n"
-		result += "Time: " + str(self.timestamp) + "\r\n"
-		result += "Keys: " + str(self.count_subkey) + "\r\n"
-		result += "Values: " + str(self.count_value) + "\r\n"
+		if is_machine:
+			result += "KEY \"" + self.get_name(_registry).replace("\0", "") + "\"\r\n"
+			result += "Time: " + str(self.timestamp) + "\r\n"
+			result += "Keys: " + str(self.count_subkey) + "\r\n"
+			result += "Values: " + str(self.count_value) + "\r\n"
+		else:
+			result += "<<<<< Раздел: \"" + self.get_name(_registry).replace("\0", "") + "\" >>>>>\r\n"
+			result += "Временная метка: " + str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)) + "\r\n"
+			result += "Всего подразделов: " + str(self.count_subkey) + "\r\n"
+			result += "Всего параметров: " + str(self.count_value) + "\r\n"
 		result += "\r\n"
 		return result
 
@@ -319,19 +340,24 @@ class CellVK:
 			data = "0x" + str(hex(self.value))[2:].zfill(16)
 		elif self.type == 1 or self.type == 2 or self.type == 7:
 			if isinstance(self.value, str):
-				return self.value
+				return self.value.replace("\0", "")
 			else:
-				data = self.value.decode("ascii") if len(self.value) != 0 else ""
+				data = self.value.decode("ascii").replace("\0", "") if len(self.value) > 0 else ""
 		else:
 			data = binascii.b2a_hex(self.value).decode("ascii")
 			data = re.sub(r'(..)', r'\1 ', data)
-		return str(data)
+		return data
 
-	def to_string(self):
-		result = "VALUE \"" + self.name + "\"" + "\r\n"
-		result += "Size: " + str(self.get_data_size()) + " bytes\r\n"
-		result += "Type: " + self.get_type() + "\r\n"
-		result += "Data: " + self.get_data() + "\r\n"
+	def to_string(self, is_machine):
+		if is_machine:
+			result = "VALUE \"" + self.name + "\"\r\n"
+			result += "Size: " + str(self.get_data_size()) + " bytes\r\n"
+			result += "Type: " + self.get_type() + "\r\n"
+			result += "Data: " + self.get_data() + "\r\n"
+		else:
+			result = "Имя параметра: \"" + self.name + "\"\r\n"
+			result += "Тип: \"" + self.get_type() + "\"\r\n"
+			result += "Данные: \"" + self.get_data() + "\"\r\n"
 		result += "\r\n"
 		return result
 
@@ -426,13 +452,15 @@ def get_item(cell_type, head, buff):
 	return None, 1 if size == 0 else abs(size)
 
 
-def umform(reg_header, _registry, path, out):
+def umform(reg_header, _registry, path, out, is_machine):
 	root_sh = get_root(_registry, path)
 	if root_sh == 0:
 		return None
 	filled = set()
 	errors = set()
 	queue = [root_sh]
+	with open(out, "a+") as file:
+		file.close()
 	with open(out, "w") as file:
 		while len(queue) > 0:
 			cell_sh = queue.pop(0)
@@ -443,11 +471,11 @@ def umform(reg_header, _registry, path, out):
 				filled.add(cell_sh)
 			CellNK.count -= 1
 			cell = get_cell(cell_sh, _registry)
-			file.write(cell.to_string(_registry))
+			file.write(cell.to_string(_registry, is_machine))
 			for i in range(0, len(cell.values)):
 				cell_vk = get_cell(cell.values[i], _registry)
-				file.write(cell_vk.to_string())
-			temp = get_subkeys(cell_sh, _registry)
+				file.write(cell_vk.to_string(is_machine))
+			temp = get_subkeys(cell_sh, _registry, set())
 			temp.extend(queue)
 			queue = temp
 	pass
@@ -497,7 +525,7 @@ def get_root(_registry, path):
 		return None
 	if len(path_sp) == 0:
 		return _registry[0].shift
-	queue = get_subkeys(_registry[0].shift, _registry)
+	queue = get_subkeys(_registry[0].shift, _registry, set())
 	cell_sh = None
 	while len(queue) > 0 and len(path_sp) > 0:
 		cell_name = path_sp[0]
@@ -505,7 +533,7 @@ def get_root(_registry, path):
 		cell = get_cell(cell_sh, _registry)
 		if has_name(cell, cell_name):
 			path_sp.pop(0)
-			queue = get_subkeys(cell_sh, _registry)
+			queue = get_subkeys(cell_sh, _registry, set())
 	return None if len(path_sp) > 0 else cell_sh
 
 
