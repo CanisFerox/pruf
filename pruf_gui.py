@@ -50,7 +50,7 @@ class mainForm(Ui_MainWindow):
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
-			for child_sh in get_subkeys(cell_sh, _reg, set()):
+			for child_sh in get_subkeys(cell_sh, _reg):
 				child = get_cell(child_sh, _reg)
 				node = self.add_child(parent, child.name, child_sh)
 				queue_sh.append(child_sh)
@@ -76,7 +76,7 @@ class mainForm(Ui_MainWindow):
 		selected = selected[0]
 		shift = selected.data(0, QtCore.Qt.UserRole)
 		cell = get_cell(shift, self.registry)
-		subeys = get_subkeys(shift, self.registry, set())
+		subeys = get_subkeys(shift, self.registry)
 		self.nk_value.setText(str(len(subeys)))
 		self.nk_value.repaint()
 		self.vk_value.setText(str(cell.count_value))
@@ -143,6 +143,8 @@ class mainForm(Ui_MainWindow):
 		sys.exit()
 
 	def show_only_deleted(self):
+		if self.tree_root is None:
+			return
 		self.treeWidget.clear()
 		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
@@ -150,14 +152,17 @@ class mainForm(Ui_MainWindow):
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
-			for child_sh in get_subkeys(cell_sh, self.registry, set()):
+			for child_sh in get_subkeys(cell_sh, self.registry):
 				child = get_cell(child_sh, self.registry)
 				if child.is_deleted() or child.have_deleted_child():
 					node = self.add_child(parent, child.name, child_sh)
 					queue_sh.append(child_sh)
 					queue_item.append(node)
+		self.mode_value.setText("Удаленные")
 
 	def show_all(self):
+		if self.tree_root is None:
+			return
 		self.treeWidget.clear()
 		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
@@ -165,13 +170,16 @@ class mainForm(Ui_MainWindow):
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
-			for child_sh in get_subkeys(cell_sh, self.registry, set()):
+			for child_sh in get_subkeys(cell_sh, self.registry):
 				child = get_cell(child_sh, self.registry)
 				node = self.add_child(parent, child.name, child_sh)
 				queue_sh.append(child_sh)
 				queue_item.append(node)
+		self.mode_value.setText("Все")
 
 	def show_not_deleted(self):
+		if self.tree_root is None:
+			return
 		self.treeWidget.clear()
 		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
@@ -179,12 +187,13 @@ class mainForm(Ui_MainWindow):
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
-			for child_sh in get_subkeys(cell_sh, self.registry, set()):
+			for child_sh in get_subkeys(cell_sh, self.registry):
 				child = get_cell(child_sh, self.registry)
 				if not child.is_deleted():
 					node = self.add_child(parent, child.name, child_sh)
 					queue_sh.append(child_sh)
 					queue_item.append(node)
+		self.mode_value.setText("Не удаленные")
 
 class Search(Ui_Form):
 
@@ -216,7 +225,7 @@ class Search(Ui_Form):
 		self.status_label.repaint()
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
-			for child_sh in get_subkeys(cell_sh, registry, marked):
+			for child_sh in get_subkeys(cell_sh, registry):
 				if child_sh in find:
 					continue
 				else:
@@ -243,6 +252,7 @@ class Search(Ui_Form):
 		return row_num + 1
 
 	def clear_func(self):
+		self.status_label.setText("Результаты очищены.")
 		for i in reversed(range(0, self.search_table.rowCount())):
 			self.search_table.removeRow(i)
 			self.search_table.repaint()
@@ -623,7 +633,7 @@ def umform(reg_header, _registry, path, out, is_machine):
 			for i in range(0, len(cell.values)):
 				cell_vk = get_cell(cell.values[i], _registry)
 				file.write(cell_vk.to_string(is_machine))
-			temp = get_subkeys(cell_sh, _registry, set())
+			temp = get_subkeys(cell_sh, _registry)
 			temp.extend(queue)
 			queue = temp
 	pass
@@ -633,12 +643,9 @@ def get_cell(shift, _registry):
 	return _registry[shift]
 
 
-def get_subkeys(parent_sh, _registry, marked=set()):
+def get_subkeys(parent_sh, _registry):
 	queue = []
-	# if parent_sh in marked:
-	# 	return queue
-	# else:
-	# 	marked.add(parent_sh)
+
 	parent = get_cell(parent_sh, _registry)
 	if parent.sign == b'nk':
 		try:
@@ -650,7 +657,7 @@ def get_subkeys(parent_sh, _registry, marked=set()):
 				if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
 					queue.append(cell_list.get_shift(i))
 				else:
-					queue.extend(get_subkeys(cell_list.get_shift(i), _registry, marked))
+					queue.extend(get_subkeys(cell_list.get_shift(i), _registry))
 			except KeyError:
 				pass
 	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
@@ -659,7 +666,7 @@ def get_subkeys(parent_sh, _registry, marked=set()):
 				if get_cell(parent.get_shift(i), _registry).sign == b'nk':
 					queue.append(parent.get_shift(i))
 				else:
-					queue.extend(get_subkeys(parent.get_shift(i), _registry, marked))
+					queue.extend(get_subkeys(parent.get_shift(i), _registry))
 			except KeyError:
 				pass
 	return queue
@@ -673,7 +680,7 @@ def get_root(_registry, path):
 		return None
 	if len(path_sp) == 0:
 		return _registry[0].shift
-	queue = get_subkeys(_registry[0].shift, _registry, set())
+	queue = get_subkeys(_registry[0].shift, _registry)
 	cell_sh = None
 	while len(queue) > 0 and len(path_sp) > 0:
 		cell_name = path_sp[0]
@@ -681,7 +688,7 @@ def get_root(_registry, path):
 		cell = get_cell(cell_sh, _registry)
 		if has_name(cell, cell_name):
 			path_sp.pop(0)
-			queue = get_subkeys(cell_sh, _registry, set())
+			queue = get_subkeys(cell_sh, _registry)
 	return None if len(path_sp) > 0 else cell_sh
 
 
