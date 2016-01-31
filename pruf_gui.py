@@ -234,13 +234,13 @@ class Search(Ui_Form):
 				queue_sh.append(child_sh)
 				if nk_name_enabled:
 					if search_str.lower() in str(child.name).replace("\0", "").lower():
-						row_num = self.add_search_row(child.name, child.get_name(registry), row_num)
+						row_num = self.add_search_row("Раздел: '{}'".format(child.name), child.get_name(registry), row_num)
 				if vk_name_enabled or vk_value_enabled:
 					for i in range(0, len(child.values)):
 						cell_vk = get_cell(child.values[i], registry)
 						if (vk_name_enabled and search_str.lower() in str(cell_vk.name).replace("\0", "").lower()) \
 								or (vk_value_enabled and search_str.lower() in str(cell_vk.get_data()).replace("\0", "").lower()):
-							row_num = self.add_search_row(cell_vk.name, child.get_name(registry), row_num)
+							row_num = self.add_search_row("Параметр: '{}'".format(cell_vk.name), child.get_name(registry), row_num)
 		self.search_table.repaint()
 		self.status_label.setText("Найдено {} значений.".format(row_num))
 		pass
@@ -491,7 +491,10 @@ class CellVK:
 				try:
 					data = self.value.decode("ascii").replace("\0", "") if len(self.value) > 0 else ""
 				except UnicodeDecodeError:
-					data = self.value.decode("UTF-16").replace("\0", "") if len(self.value) > 0 else ""
+					try:
+						data = self.value.decode("UTF-16").replace("\0", "") if len(self.value) > 0 else ""
+					except:
+						data = str(self.value)
 		else:
 			data = binascii.b2a_hex(self.value).decode("ascii")
 			data = re.sub(r'(..)', r'\1 ', data)

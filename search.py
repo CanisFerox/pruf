@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'search.ui'
 #
-# Created: Sat Jan 30 21:12:07 2016
+# Created: Mon Feb  1 04:58:29 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -15,7 +15,6 @@ class Ui_Form(object):
         Form.setWindowModality(QtCore.Qt.WindowModal)
         Form.resize(640, 480)
         Form.setMinimumSize(QtCore.QSize(640, 480))
-        Form.setMaximumSize(QtCore.QSize(800, 600))
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
