@@ -197,7 +197,9 @@ class Search(Ui_Form):
 		return row_num + 1
 
 	def clear_func(self):
-		pass
+		for i in reversed(range(0, self.search_table.rowCount())):
+			self.search_table.removeRow(i)
+			self.search_table.repaint()
 
 	def exit_func(self):
 		print("!!!")
