@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'interface.ui'
 #
-# Created: Sun Jan 24 23:46:48 2016
+# Created: Sat Jan 30 21:07:38 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -246,7 +246,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "PRUF GUI"))
         self.nk_count.setText(_translate("MainWindow", "Подразделов:"))
         self.vk_count.setText(_translate("MainWindow", "Параметров:"))
         self.timestamp.setText(_translate("MainWindow", "Временная метка:"))

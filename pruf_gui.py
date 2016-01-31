@@ -7,6 +7,7 @@ import sys
 import binascii
 import re
 from interface import Ui_MainWindow
+from search import Ui_Form
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QTreeWidgetItem, QTableWidgetItem
 from datetime import datetime, timedelta
@@ -22,6 +23,7 @@ class mainForm(Ui_MainWindow):
 		self.setupUi(self.window)
 		self.registry = None
 		self.tree_root = None
+		self.search_window = None
 		self.mode_value.setText("Все")
 		self.open_action.triggered.connect(self.open_action_func)
 		self.export_a_action.triggered.connect(self.export_a_action_func)
@@ -129,13 +131,76 @@ class mainForm(Ui_MainWindow):
 		pass
 
 	def search_func(self):
-		pass
+		self.search_window = Search(self)
 
 	def about_func(self):
 		pass
 
 	def exit_func(self):
+		sys.exit()
+
+
+class Search(Ui_Form):
+
+	def __init__(self, parent):
+		Ui_Form.__init__(self)
+		self.window = QtWidgets.QDialog()
+		self.parent = parent
+		self.setupUi(self.window)
+		self.seach_button.clicked.connect(self.search_func)
+		self.clear_button.clicked.connect(self.clear_func)
+		self.window.show()
+
+	def search_func(self):
+		nk_name_enabled = self.checkBox.isChecked()
+		vk_name_enabled = self.checkBox_2.isChecked()
+		vk_value_enabled = self.checkBox_3.isChecked()
+		search_str = self.search_input.text()
+		registry = self.parent.registry
+		if registry is None:
+			return
+		for i in reversed(range(0, self.search_table.rowCount())):
+			self.search_table.removeRow(i)
+		queue_sh = [registry[0].shift]
+		row_num = 0
+		marked = set()
+		find = set()
+		find.add(registry[0].shift)
+		self.status_label.setText("Выполняется поиск...")
+		self.status_label.repaint()
+		while len(queue_sh) > 0:
+			cell_sh = queue_sh.pop(0)
+			for child_sh in get_subkeys(cell_sh, registry, marked):
+				if child_sh in find:
+					continue
+				else:
+					find.add(child_sh)
+				child = get_cell(child_sh, registry)
+				queue_sh.append(child_sh)
+				if nk_name_enabled:
+					if search_str.lower() in str(child.name).replace("\0", "").lower():
+						row_num = self.add_search_row(child.name, child.get_name(registry), row_num)
+				if vk_name_enabled or vk_value_enabled:
+					for i in range(0, len(child.values)):
+						cell_vk = get_cell(child.values[i], registry)
+						if (vk_name_enabled and search_str.lower() in str(cell_vk.name).replace("\0", "").lower()) \
+								or (vk_value_enabled and search_str.lower() in str(cell_vk.get_data()).replace("\0", "").lower()):
+							row_num = self.add_search_row(cell_vk.name, child.get_name(registry), row_num)
+		self.search_table.repaint()
+		self.status_label.setText("Найдено {} значений.".format(row_num))
 		pass
+
+	def add_search_row(self, name, path, row_num):
+		self.search_table.insertRow(row_num)
+		self.search_table.setItem(row_num, 0, QTableWidgetItem(name))
+		self.search_table.setItem(row_num, 1, QTableWidgetItem(path.replace("\0", "")))
+		return row_num + 1
+
+	def clear_func(self):
+		pass
+
+	def exit_func(self):
+		print("!!!")
 
 ############## BEGIN ##############
 
@@ -282,6 +347,7 @@ class CellVK:
 		# 	pass
 		self.type = param_type  # тип данных {1..11}
 		self.flag = flag  # тип кодировки
+		self.isCorrect = True
 		try:
 			self.name = name.decode("ascii") if flag == 1 else name.decode("UTF-16")
 		except:
@@ -293,26 +359,27 @@ class CellVK:
 	def set_value(self, buffer):
 		if self.isEmpty:
 			return
-		if self.type == 4 or self.type == 5:
+		elif self.type == 4 or self.type == 5:
 			return
-		if self.value > len(buffer):
-			# CellVK.count += 1
+		elif self.len_data <= 4:
+			self.value = pack("I", self.value)
+			if self.type == 1:
+				self.value = self.value.decode("ascii")
+				return
 			return
-		if self.len_data == 4 and self.type == 1:
-			self.value = pack("I", self.value).decode("ascii")
-			return
-		elif self.len_data < 4 and self.type == 1:
-			self.value = pack("H", self.value).decode("ascii")
-			return
-		vs = self.value + main_block_size
-		size = unpack("i", buffer[vs:vs + 0x4])[0]
+		else:
+			vs = self.value + main_block_size
+			size = unpack("i", buffer[vs:vs + 0x4])[0]
 		if self.type == 11 and abs(size) == 8:
 			value = unpack("q", buffer[vs + 0x4:vs + abs(size)])[0]
 		if self.is_string():
 			pattern = str(self.len_data) + "s"
 			value = unpack(pattern, buffer[vs + 0x4:vs + 0x4 + self.len_data])[0] if size != 0 else ""
-		else:
+		elif self.value < len(buffer):
 			value = buffer[vs + 0x4:vs + 0x4 + self.len_data]
+		else:
+			self.isCorrect = False
+			return
 		self.value = value
 
 	def is_string(self):
@@ -337,12 +404,19 @@ class CellVK:
 		if self.type == 4 or self.type == 5:
 			data = "0x" + str(hex(self.value))[2:].zfill(8)
 		elif self.type == 11:
-			data = "0x" + str(hex(self.value))[2:].zfill(16)
+			if isinstance(self.value, bytes):
+				data = unpack("Q", self.value)[0]
+			else:
+				data = self.value
+			data = "0x" + str(hex(data))[2:].zfill(16)
 		elif self.type == 1 or self.type == 2 or self.type == 7:
 			if isinstance(self.value, str):
 				return self.value.replace("\0", "")
 			else:
-				data = self.value.decode("ascii").replace("\0", "") if len(self.value) > 0 else ""
+				try:
+					data = self.value.decode("ascii").replace("\0", "") if len(self.value) > 0 else ""
+				except UnicodeDecodeError:
+					data = self.value.decode("UTF-16").replace("\0", "") if len(self.value) > 0 else ""
 		else:
 			data = binascii.b2a_hex(self.value).decode("ascii")
 			data = re.sub(r'(..)', r'\1 ', data)
