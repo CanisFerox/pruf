@@ -32,23 +32,26 @@ class mainForm(Ui_MainWindow):
 		self.about.triggered.connect(self.about_func)
 		self.exit_action.triggered.connect(self.exit_func)
 		self.treeWidget.clicked.connect(self.tree_item_click)
+		self.view_all.triggered.connect(self.show_all)
+		self.view_deleted.triggered.connect(self.show_only_deleted)
+		self.view_nondeleted.triggered.connect(self.show_not_deleted)
 		self.window.show()
 
 	def open_action_func(self):
 		fname = QtWidgets.QFileDialog.getOpenFileName(self.window, 'Open file', '/home')
 		if not fname[0]:
 			return
-		column = 0
-		header, registry = load_hive(fname[0])
-		self.registry = registry
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), column, header.name, header.shift)
+		header, _reg = load_hive(fname[0])
+		_reg = restore_deleted_keys(_reg)
+		self.registry = _reg
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name, header.shift)
 		queue_sh = [header.shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
 			cell_sh = queue_sh.pop(0)
 			parent = queue_item.pop(0)
-			for child_sh in get_subkeys(cell_sh, registry):
-				child = get_cell(child_sh, registry)
+			for child_sh in get_subkeys(cell_sh, _reg, set()):
+				child = get_cell(child_sh, _reg)
 				node = self.add_child(parent, child.name, child_sh)
 				queue_sh.append(child_sh)
 				queue_item.append(node)
@@ -110,7 +113,7 @@ class mainForm(Ui_MainWindow):
 		path = get_cell(shift, self.registry).get_name(self.registry)
 		root = get_root(self.registry, path)
 		if root == None:
-			raise "Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path"
+			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path")
 		umform(self.registry[0], self.registry, path, fname, True)
 		pass
 
@@ -126,7 +129,7 @@ class mainForm(Ui_MainWindow):
 		path = get_cell(shift, self.registry).get_name(self.registry)
 		root = get_root(self.registry, path)
 		if root == None:
-			raise "Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path"
+			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path")
 		umform(self.registry[0], self.registry, path, fname, False)
 		pass
 
@@ -139,6 +142,49 @@ class mainForm(Ui_MainWindow):
 	def exit_func(self):
 		sys.exit()
 
+	def show_only_deleted(self):
+		self.treeWidget.clear()
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
+		queue_sh = [self.registry[0].shift]
+		queue_item = [self.tree_root]
+		while len(queue_sh) > 0:
+			cell_sh = queue_sh.pop(0)
+			parent = queue_item.pop(0)
+			for child_sh in get_subkeys(cell_sh, self.registry, set()):
+				child = get_cell(child_sh, self.registry)
+				if child.is_deleted() or child.have_deleted_child():
+					node = self.add_child(parent, child.name, child_sh)
+					queue_sh.append(child_sh)
+					queue_item.append(node)
+
+	def show_all(self):
+		self.treeWidget.clear()
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
+		queue_sh = [self.registry[0].shift]
+		queue_item = [self.tree_root]
+		while len(queue_sh) > 0:
+			cell_sh = queue_sh.pop(0)
+			parent = queue_item.pop(0)
+			for child_sh in get_subkeys(cell_sh, self.registry, set()):
+				child = get_cell(child_sh, self.registry)
+				node = self.add_child(parent, child.name, child_sh)
+				queue_sh.append(child_sh)
+				queue_item.append(node)
+
+	def show_not_deleted(self):
+		self.treeWidget.clear()
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
+		queue_sh = [self.registry[0].shift]
+		queue_item = [self.tree_root]
+		while len(queue_sh) > 0:
+			cell_sh = queue_sh.pop(0)
+			parent = queue_item.pop(0)
+			for child_sh in get_subkeys(cell_sh, self.registry, set()):
+				child = get_cell(child_sh, self.registry)
+				if not child.is_deleted():
+					node = self.add_child(parent, child.name, child_sh)
+					queue_sh.append(child_sh)
+					queue_item.append(node)
 
 class Search(Ui_Form):
 
@@ -241,6 +287,7 @@ class CellNK:
 	count = 0
 
 	def __init__(self, buffer):
+		self.sign = None
 		if len(buffer) < 0x50:
 			self.isEmpty = True
 			return None
@@ -250,7 +297,8 @@ class CellNK:
 		count_value, values, shift_desk, shift_classname, _, len_keyname, len_classname = unpack("IIII20sHH", buffer[0x28:0x50])
 		if sign != b'nk':
 			print("отсутствует сигнатура nk!")
-		empty = False if size < 0 else True
+		self.deleted = False if size < 0 else True
+		self.have_deleted = False
 		len_keyname = len_keyname if abs(size) >= 0x50 + len_keyname else 0
 		pattern = str(len_keyname) + "s"
 		name = unpack(pattern, buffer[0x50:0x50 + len_keyname])[0]
@@ -263,8 +311,6 @@ class CellNK:
 		self.shift_subkey = shift_subkey + main_block_size  # список подразделов
 		self.count_value = count_value  # количество параметров
 		self.values = values + main_block_size  # список параметров
-		if self.values > 12320767 and not empty:
-			pass
 		self.shift_desk = shift_desk + main_block_size  # смещение дескриптора уровня защиты
 		self.shift_classname = shift_classname + main_block_size  # смещение имени класса
 		self.len_keyname = len_keyname  # длина имени ключа
@@ -277,6 +323,16 @@ class CellNK:
 				self.name = name.decode("ascii") if flag != 0x20 else name.decode("UTF-8")
 			except:
 				pass
+
+	def is_deleted(self):
+		return self.deleted
+
+	def have_deleted_child(self):
+		return self.have_deleted
+
+	def add_child(self, shift, parent_sh, _registry):
+		if not shift in get_subkeys(parent_sh, _registry):
+			get_cell(self.shift_subkey, _registry).add_child(shift)
 
 	def set_vk_list(self, buffer):
 		if self.isEmpty:
@@ -316,10 +372,10 @@ class CellNK:
 		while cell is not None and cell.shift_parent != _registry[0].shift:
 			try:
 				cell = get_cell(cell.shift_parent, _registry)
-				result = cell.name + "/" + result
+				result = cell.name + "\\" + result
 			except Exception:
 				cell = None
-		return _registry[0].name + "/" + result
+		return _registry[0].name + "\\" + result
 
 
 class CellVK:
@@ -327,6 +383,7 @@ class CellVK:
 	# count = 0
 
 	def __init__(self, buffer):
+		self.sign = None
 		if len(buffer) < 0x18:
 			self.isEmpty = True
 			return None  # TODO вернуть пустую ячейку значения
@@ -334,7 +391,7 @@ class CellVK:
 		size, sign, len_valname, len_data, _, pointer, param_type, flag = unpack("i2sHH2pIIH", buffer[:0x16])
 		if sign != b'vk':
 			print("Отсутствует сигнатура vk!")
-		deleted = False if size < 0 else True
+		self.deleted = False if size < 0 else True
 		len_valname = len_valname if abs(size) >= 0x18 + len_valname else 0
 		pattern = str(len_valname) + "s"
 		name = unpack(pattern, buffer[0x18:0x18 + len_valname])[0]
@@ -357,6 +414,12 @@ class CellVK:
 				self.name = name.decode("ascii") if flag != 1 else name.decode("UTF-16")
 			except:
 				pass
+
+	def is_deleted(self):
+		return self.deleted
+
+	def have_deleted_child(self):
+		return False
 
 	def set_value(self, buffer):
 		if self.isEmpty:
@@ -460,6 +523,9 @@ class CellSubKeysLfLh:
 	def get_crc(self, num):
 		return self.subkeys[num][1]
 
+	def add_child(self, shift):
+		self.subkeys[self.count_subkey] = [shift, 0]
+		self.count_subkey += 1
 
 class CellSubKeysRiLi:
 	def __init__(self, buffer):
@@ -480,6 +546,12 @@ class CellSubKeysRiLi:
 	def get_shift(self, num):
 		return self.subkeys[num]
 
+	def get_crc(self, num):
+		return 0
+
+	def add_child(self, shift):
+		self.subkeys[self.count_subkey] = shift
+		self.count_subkey += 1
 
 # def create_parser():
 # 	_parser = argparse.ArgumentParser(
@@ -563,17 +635,17 @@ def get_cell(shift, _registry):
 
 def get_subkeys(parent_sh, _registry, marked=set()):
 	queue = []
-	if parent_sh in marked:
-		return queue
-	else:
-		marked.add(parent_sh)
+	# if parent_sh in marked:
+	# 	return queue
+	# else:
+	# 	marked.add(parent_sh)
 	parent = get_cell(parent_sh, _registry)
 	if parent.sign == b'nk':
 		try:
 			cell_list = get_cell(parent.shift_subkey, _registry)
 		except KeyError:
 			return queue
-		for i in range(0, len(cell_list.subkeys)):
+		for i in range(0, cell_list.count_subkey):
 			try:
 				if get_cell(cell_list.get_shift(i), _registry).sign == b'nk':
 					queue.append(cell_list.get_shift(i))
@@ -582,7 +654,7 @@ def get_subkeys(parent_sh, _registry, marked=set()):
 			except KeyError:
 				pass
 	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
-		for i in range(0, len(parent.subkeys)):
+		for i in range(0, parent.count_subkey):
 			try:
 				if get_cell(parent.get_shift(i), _registry).sign == b'nk':
 					queue.append(parent.get_shift(i))
@@ -630,6 +702,28 @@ def has_name(cell, name):
 	# if cell.name in ns_5 and name in ns_5:
 	# 	return True
 	return name == cell.name
+
+def restore_deleted_keys(reg):
+	count = 0
+	for shift in reg.keys():
+		if shift == 0 or shift == "changed":
+			continue
+		cell = get_cell(shift, reg)
+		if cell.sign == b'nk' and cell.is_deleted():
+			cell.name = "[DELETED] " + cell.name
+			get_cell(cell.shift_parent, reg).add_child(shift, cell.shift_parent, reg)
+			set_parent_hdc(cell.shift_parent, reg)
+	return reg
+
+def set_parent_hdc(shift, reg):
+	cell = get_cell(shift, reg)
+	cell.have_deleted = True
+	if cell.shift_parent == reg[0].shift:
+		cell = get_cell(reg[0].shift, reg)
+		cell.have_deleted = True
+		return
+	set_parent_hdc(cell.shift_parent, reg)
+
 
 ############## END ##############
 
