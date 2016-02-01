@@ -104,7 +104,6 @@ class mainForm(Ui_MainWindow):
 	def export_a_action_func(self):
 		fname = QtWidgets.QFileDialog.getSaveFileName(self.window, 'Open file', '/home')
 		fname = str(fname[0])
-		print(fname)
 		selected = self.treeWidget.selectedItems()
 		if len(selected) > 1:
 			return
@@ -113,14 +112,13 @@ class mainForm(Ui_MainWindow):
 		path = get_cell(shift, self.registry).get_name(self.registry)
 		root = get_root(self.registry, path)
 		if root == None:
-			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path")
+			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути {}".format(path))
 		umform(self.registry[0], self.registry, path, fname, True)
 		pass
 
 	def export_m_action_func(self):
 		fname = QtWidgets.QFileDialog.getSaveFileName(self.window, 'Open file', '/home')
 		fname = str(fname[0])
-		print(fname)
 		selected = self.treeWidget.selectedItems()
 		if len(selected) > 1:
 			return
@@ -129,7 +127,7 @@ class mainForm(Ui_MainWindow):
 		path = get_cell(shift, self.registry).get_name(self.registry)
 		root = get_root(self.registry, path)
 		if root == None:
-			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути path")
+			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути {}".format(path))
 		umform(self.registry[0], self.registry, path, fname, False)
 		pass
 
@@ -364,15 +362,15 @@ class CellNK:
 	def to_string(self, _registry, is_machine):
 		result = "\r\n"
 		if is_machine:
-			result += "KEY \"" + self.get_name(_registry).replace("\0", "") + "\"\r\n"
-			result += "Time: " + str(self.timestamp) + "\r\n"
-			result += "Keys: " + str(self.count_subkey) + "\r\n"
-			result += "Values: " + str(self.count_value) + "\r\n"
+			result += "KEY \"{}\"\r\n".format(self.get_name(_registry).replace("\0", ""))
+			result += "Time: {}\r\n".format(str(self.timestamp))
+			result += "Keys: {}\r\n".format(str(self.count_subkey))
+			result += "Values: {}\r\n".format(str(self.count_value))
 		else:
-			result += "<<<<< Раздел: \"" + self.get_name(_registry).replace("\0", "") + "\" >>>>>\r\n"
-			result += "Временная метка: " + str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)) + "\r\n"
-			result += "Всего подразделов: " + str(self.count_subkey) + "\r\n"
-			result += "Всего параметров: " + str(self.count_value) + "\r\n"
+			result += "<<<<< Раздел: \"{}\" >>>>>\r\n".format(self.get_name(_registry).replace("\0", ""))
+			result += "Временная метка: {}\r\n".format(str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
+			result += "Всего подразделов: {}\r\n".format(str(self.count_subkey))
+			result += "Всего параметров: {}\r\n".format(str(self.count_value))
 		result += "\r\n"
 		return result
 
@@ -502,14 +500,14 @@ class CellVK:
 
 	def to_string(self, is_machine):
 		if is_machine:
-			result = "VALUE \"" + self.name + "\"\r\n"
-			result += "Size: " + str(self.get_data_size()) + " bytes\r\n"
-			result += "Type: " + self.get_type() + "\r\n"
-			result += "Data: " + self.get_data() + "\r\n"
+			result = "VALUE \"{}\"\r\n".format(self.name)
+			result += "Size: {} bytes\r\n".format(str(self.get_data_size()))
+			result += "Type: {}\r\n".format(self.get_type())
+			result += "Data: \"{}\"\r\n".format(self.get_data())
 		else:
-			result = "Имя параметра: \"" + self.name + "\"\r\n"
-			result += "Тип: \"" + self.get_type() + "\"\r\n"
-			result += "Данные: \"" + self.get_data() + "\"\r\n"
+			result = "Имя параметра: \"{}\"\r\n".format(self.name)
+			result += "Тип: \"{}\"\r\n".format(self.get_type())
+			result += "Данные: \"{}\"\r\n".format(self.get_data())
 		result += "\r\n"
 		return result
 
@@ -676,11 +674,12 @@ def get_subkeys(parent_sh, _registry):
 
 
 def get_root(_registry, path):
-	path_sp = path.split("/")
+	path_sp = path.split("\\")
 	if path_sp[0] == '':
 		path_sp.pop(0)
-	if _registry[0].name != path_sp.pop(0):
-		return None
+	for hive_name_part in _registry[0].name.split("\\"):
+		if hive_name_part != path_sp.pop(0):
+			return None
 	if len(path_sp) == 0:
 		return _registry[0].shift
 	queue = get_subkeys(_registry[0].shift, _registry)
