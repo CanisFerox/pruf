@@ -375,10 +375,10 @@ class InputForm(input_form.Ui_Form):
 		if self.shift not in self.reg["changed"].keys():
 			self.reg["changed"][self.shift] = {}
 		self.reg["changed"][self.shift][prop] = value
-		print(value)
+		self.window.close()
 
 	def raise_exception(self, mask, data=""):
-		print(mask.format(data))
+		self.error_label.setText(mask.format(data))
 
 ############## BEGIN ##############
 

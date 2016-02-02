@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'input_form.ui'
 #
-# Created: Mon Feb  1 06:25:06 2016
+# Created: Tue Feb  2 15:22:27 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -60,8 +60,16 @@ class Ui_Form(object):
         self.new_value.setObjectName("new_value")
         self.horizontalLayout_2.addWidget(self.new_value)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.error_label = QtWidgets.QLabel(Form)
+        self.error_label.setMinimumSize(QtCore.QSize(500, 0))
+        self.error_label.setText("")
+        self.error_label.setObjectName("error_label")
+        self.horizontalLayout_5.addWidget(self.error_label)
         spacerItem1 = QtWidgets.QSpacerItem(20, 24, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem1)
+        self.horizontalLayout_5.addItem(spacerItem1)
+        self.verticalLayout.addLayout(self.horizontalLayout_5)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
