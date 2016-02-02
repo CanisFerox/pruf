@@ -38,13 +38,46 @@ class mainForm(Ui_MainWindow):
 		self.change_value.triggered.connect(self.change_value_func)
 		self.view_deleted.triggered.connect(self.show_only_deleted)
 		self.view_nondeleted.triggered.connect(self.show_not_deleted)
+		self.save_action.triggered.connect(self.save_changes_function)
 		self.tableWidget.hideColumn(4)
 		self.window.show()
+
+	def save_changes_function(self):
+		if self.registry is None:
+			return
+		if "changed" not in self.registry.keys():
+			return
+		if self.registry["changed"].keys() == 0:
+			return
+		with open(self.fname, "rb+") as file:
+			for key in self.registry["changed"].keys():
+				if "name" in self.registry["changed"][key].keys():
+					file.seek(key + 0x18, 0)
+					a = file.write(self.registry["changed"][key]["name"])
+					file.seek(key + 0x6, 0)
+					a = file.write(pack("H", len(self.registry["changed"][key]["name"])))
+					file.seek(key + 0x14, 0)
+					a = file.write(pack("H", 1))
+				elif "value" in self.registry["changed"][key].keys():
+					cell = get_cell(key, self.registry)
+					file.seek(key + 0x8)
+					type = self.registry["changed"][key]["type"]
+					if type == 0 or type == 1 or type == 2 or type == 3 or type == 6 or type == 7 \
+						or type == 8 or type == 9 or type == 10:
+						a = file.write(pack("H", len(self.registry["changed"][key]["value"])))
+					if cell.extended:
+						file.seek(cell.value_shift + main_block_size + 0x4, 0)
+					else:
+						file.seek(key + 0x0C, 0)
+					a = file.write(self.registry["changed"][key]["value"])
+			file.close()
+
 
 	def open_action_func(self):
 		fname = QtWidgets.QFileDialog.getOpenFileName(self.window, 'Open file', '/home')
 		if not fname[0]:
 			return
+		self.fname = fname[0]
 		header, _reg = load_hive(fname[0])
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
@@ -309,10 +342,10 @@ class InputForm(input_form.Ui_Form):
 			value = bytes(value, "ascii")
 		elif cell.is_string():
 			value = value.replace("\\0", "\0") + "\0"
-			if cell.value_size < len(value):
-				self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size - 1)
+			if cell.value_size / 2 - 1 < len(value):
+				self.raise_exception("Слишком длинное значение! Максимум {} символов!", cell.value_size / 2 - 1)
 				return
-			value = bytes(value, "ascii")
+			value = bytes(value, "UTF-16LE")
 		elif cell.is_number():
 			hex_form = "0x" in value
 			if (cell.type == 4 or cell.type == 5) and hex_form:
@@ -377,6 +410,7 @@ class InputForm(input_form.Ui_Form):
 		if self.shift not in self.reg["changed"].keys():
 			self.reg["changed"][self.shift] = {}
 		self.reg["changed"][self.shift][prop] = value
+		self.reg["changed"][self.shift]["type"] = cell.type
 		self.window.close()
 
 	def raise_exception(self, mask, data=""):
@@ -520,6 +554,7 @@ class CellVK:
 			self.isEmpty = True
 			return None  # TODO вернуть пустую ячейку значения
 		self.isEmpty = False
+		self.extended = False
 		size, sign, len_valname, len_data, _, pointer, param_type, flag = unpack("i2sHH2pIIH", buffer[:0x16])
 		if sign != b'vk':
 			print("Отсутствует сигнатура vk!")
@@ -564,6 +599,7 @@ class CellVK:
 				return
 			return
 		else:
+			self.extended = True
 			vs = self.value + main_block_size
 			size = unpack("i", buffer[vs:vs + 0x4])[0]
 			self.value_size = abs(size)
@@ -610,14 +646,15 @@ class CellVK:
 				data = self.value
 			data = "0x" + str(hex(data))[2:].zfill(16)
 		elif self.type == 1 or self.type == 2 or self.type == 7:
+			pattern = "" if self.type == 1 else ","
 			if isinstance(self.value, str):
-				return self.value.replace("\0", "")
+				return self.value.replace("\0\0", pattern).replace("\0", "")
 			else:
 				try:
-					data = self.value.decode("ascii").replace("\0", "") if len(self.value) > 0 else ""
+					data = self.value.decode("ascii").replace("\0\0", pattern).replace("\0", "") if len(self.value) > 0 else ""
 				except UnicodeDecodeError:
 					try:
-						data = self.value.decode("UTF-16").replace("\0", "") if len(self.value) > 0 else ""
+						data = self.value.decode("UTF-16").replace("\0\0", pattern) if len(self.value) > 0 else ""
 					except:
 						data = str(self.value)
 		else:
