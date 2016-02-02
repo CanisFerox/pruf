@@ -435,6 +435,7 @@
     </widget>
     <addaction name="open_action"/>
     <addaction name="save_action"/>
+    <addaction name="renew_action"/>
     <addaction name="export_2"/>
     <addaction name="exit_action"/>
    </widget>
@@ -551,6 +552,11 @@
   <action name="change_name">
    <property name="text">
     <string>Изменить имя параметра</string>
+   </property>
+  </action>
+  <action name="renew_action">
+   <property name="text">
+    <string>Обновить</string>
    </property>
   </action>
  </widget>

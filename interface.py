@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'interface.ui'
 #
-# Created: Mon Feb  1 06:47:11 2016
+# Created: Tue Feb  2 19:16:31 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -232,10 +232,13 @@ class Ui_MainWindow(object):
         self.change_value.setObjectName("change_value")
         self.change_name = QtWidgets.QAction(MainWindow)
         self.change_name.setObjectName("change_name")
+        self.renew_action = QtWidgets.QAction(MainWindow)
+        self.renew_action.setObjectName("renew_action")
         self.export_2.addAction(self.export_a_action)
         self.export_2.addAction(self.export_m_action)
         self.file.addAction(self.open_action)
         self.file.addAction(self.save_action)
+        self.file.addAction(self.renew_action)
         self.file.addAction(self.export_2.menuAction())
         self.file.addAction(self.exit_action)
         self.search.addAction(self.value_search_action)
@@ -296,4 +299,5 @@ class Ui_MainWindow(object):
         self.value_search_action.setText(_translate("MainWindow", "Поиск..."))
         self.change_value.setText(_translate("MainWindow", "Изменить значение параметра"))
         self.change_name.setText(_translate("MainWindow", "Изменить имя параметра"))
+        self.renew_action.setText(_translate("MainWindow", "Обновить"))
 

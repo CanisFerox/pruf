@@ -39,7 +39,9 @@ class mainForm(Ui_MainWindow):
 		self.view_deleted.triggered.connect(self.show_only_deleted)
 		self.view_nondeleted.triggered.connect(self.show_not_deleted)
 		self.save_action.triggered.connect(self.save_changes_function)
+		self.renew_action.triggered.connect(self.reload_function)
 		self.tableWidget.hideColumn(4)
+		self.fname = None
 		self.window.show()
 
 	def save_changes_function(self):
@@ -58,7 +60,7 @@ class mainForm(Ui_MainWindow):
 					a = file.write(pack("H", len(self.registry["changed"][key]["name"])))
 					file.seek(key + 0x14, 0)
 					a = file.write(pack("H", 1))
-				elif "value" in self.registry["changed"][key].keys():
+				if "value" in self.registry["changed"][key].keys():
 					cell = get_cell(key, self.registry)
 					file.seek(key + 0x8)
 					type = self.registry["changed"][key]["type"]
@@ -73,12 +75,25 @@ class mainForm(Ui_MainWindow):
 			file.close()
 
 
+	def reload_function(self):
+		if self.fname is None:
+			return
+		header, _reg = load_hive(self.fname)
+		_reg = restore_deleted_keys(_reg)
+		self.registry = _reg
+		self.treeWidget.collapseAll()
+
 	def open_action_func(self):
 		fname = QtWidgets.QFileDialog.getOpenFileName(self.window, 'Open file', '/home')
 		if not fname[0]:
 			return
 		self.fname = fname[0]
-		header, _reg = load_hive(fname[0])
+		self.draw_tree()
+
+	def draw_tree(self):
+		if self.fname is None:
+			return
+		header, _reg = load_hive(self.fname)
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
 		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name, header.shift)
