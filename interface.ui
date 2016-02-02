@@ -394,6 +394,11 @@
             <string>Значение</string>
            </property>
           </column>
+          <column>
+           <property name="text">
+            <string>Смещение</string>
+           </property>
+          </column>
          </widget>
         </item>
        </layout>
@@ -459,7 +464,15 @@
     </property>
     <addaction name="about"/>
    </widget>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Правка</string>
+    </property>
+    <addaction name="change_value"/>
+    <addaction name="change_name"/>
+   </widget>
    <addaction name="file"/>
+   <addaction name="menu"/>
    <addaction name="search"/>
    <addaction name="view"/>
    <addaction name="help"/>
@@ -528,6 +541,16 @@
   <action name="value_search_action">
    <property name="text">
     <string>Поиск...</string>
+   </property>
+  </action>
+  <action name="change_value">
+   <property name="text">
+    <string>Изменить значение параметра</string>
+   </property>
+  </action>
+  <action name="change_name">
+   <property name="text">
+    <string>Изменить имя параметра</string>
    </property>
   </action>
  </widget>

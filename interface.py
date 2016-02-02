@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'interface.ui'
 #
-# Created: Sat Jan 30 21:07:38 2016
+# Created: Mon Feb  1 06:47:11 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -156,7 +156,7 @@ class Ui_MainWindow(object):
         self.tableWidget.setShowGrid(False)
         self.tableWidget.setGridStyle(QtCore.Qt.SolidLine)
         self.tableWidget.setObjectName("tableWidget")
-        self.tableWidget.setColumnCount(4)
+        self.tableWidget.setColumnCount(5)
         self.tableWidget.setRowCount(0)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(0, item)
@@ -166,6 +166,8 @@ class Ui_MainWindow(object):
         self.tableWidget.setHorizontalHeaderItem(2, item)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(3, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(4, item)
         self.tableWidget.horizontalHeader().setVisible(True)
         self.tableWidget.horizontalHeader().setCascadingSectionResizes(False)
         self.tableWidget.horizontalHeader().setDefaultSectionSize(100)
@@ -194,6 +196,8 @@ class Ui_MainWindow(object):
         self.view_mode.setObjectName("view_mode")
         self.help = QtWidgets.QMenu(self.menubar)
         self.help.setObjectName("help")
+        self.menu = QtWidgets.QMenu(self.menubar)
+        self.menu.setObjectName("menu")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
@@ -224,6 +228,10 @@ class Ui_MainWindow(object):
         self.save_action.setObjectName("save_action")
         self.value_search_action = QtWidgets.QAction(MainWindow)
         self.value_search_action.setObjectName("value_search_action")
+        self.change_value = QtWidgets.QAction(MainWindow)
+        self.change_value.setObjectName("change_value")
+        self.change_name = QtWidgets.QAction(MainWindow)
+        self.change_name.setObjectName("change_name")
         self.export_2.addAction(self.export_a_action)
         self.export_2.addAction(self.export_m_action)
         self.file.addAction(self.open_action)
@@ -236,7 +244,10 @@ class Ui_MainWindow(object):
         self.view_mode.addAction(self.view_all)
         self.view.addAction(self.view_mode.menuAction())
         self.help.addAction(self.about)
+        self.menu.addAction(self.change_value)
+        self.menu.addAction(self.change_name)
         self.menubar.addAction(self.file.menuAction())
+        self.menubar.addAction(self.menu.menuAction())
         self.menubar.addAction(self.search.menuAction())
         self.menubar.addAction(self.view.menuAction())
         self.menubar.addAction(self.help.menuAction())
@@ -261,12 +272,15 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "Размер"))
         item = self.tableWidget.horizontalHeaderItem(3)
         item.setText(_translate("MainWindow", "Значение"))
+        item = self.tableWidget.horizontalHeaderItem(4)
+        item.setText(_translate("MainWindow", "Смещение"))
         self.file.setTitle(_translate("MainWindow", "Файл"))
         self.export_2.setTitle(_translate("MainWindow", "Экспорт"))
         self.search.setTitle(_translate("MainWindow", "Поиск"))
         self.view.setTitle(_translate("MainWindow", "Вид"))
         self.view_mode.setTitle(_translate("MainWindow", "Режим отображения"))
         self.help.setTitle(_translate("MainWindow", "Помощь"))
+        self.menu.setTitle(_translate("MainWindow", "Правка"))
         self.action1.setText(_translate("MainWindow", "1"))
         self.action2.setText(_translate("MainWindow", "2"))
         self.open_action.setText(_translate("MainWindow", "Открыть"))
@@ -280,4 +294,6 @@ class Ui_MainWindow(object):
         self.search_action.setText(_translate("MainWindow", "Поиск"))
         self.save_action.setText(_translate("MainWindow", "Сохранить"))
         self.value_search_action.setText(_translate("MainWindow", "Поиск..."))
+        self.change_value.setText(_translate("MainWindow", "Изменить значение параметра"))
+        self.change_name.setText(_translate("MainWindow", "Изменить имя параметра"))
 

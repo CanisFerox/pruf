@@ -8,6 +8,7 @@ import binascii
 import re
 from interface import Ui_MainWindow
 from search import Ui_Form
+import input_form
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QTreeWidgetItem, QTableWidgetItem
 from datetime import datetime, timedelta
@@ -33,8 +34,11 @@ class mainForm(Ui_MainWindow):
 		self.exit_action.triggered.connect(self.exit_func)
 		self.treeWidget.clicked.connect(self.tree_item_click)
 		self.view_all.triggered.connect(self.show_all)
+		self.change_name.triggered.connect(self.change_name_func)
+		self.change_value.triggered.connect(self.change_value_func)
 		self.view_deleted.triggered.connect(self.show_only_deleted)
 		self.view_nondeleted.triggered.connect(self.show_not_deleted)
+		self.tableWidget.hideColumn(4)
 		self.window.show()
 
 	def open_action_func(self):
@@ -99,6 +103,7 @@ class mainForm(Ui_MainWindow):
 			self.tableWidget.setItem(row_num, 1, QTableWidgetItem(value_cell.get_type()))
 			self.tableWidget.setItem(row_num, 2, QTableWidgetItem(str(value_cell.get_data_size())))
 			self.tableWidget.setItem(row_num, 3, QTableWidgetItem(value_cell.get_data()))
+			self.tableWidget.setItem(row_num, 4, QTableWidgetItem(str(value_sh)))
 			row_num += 1
 
 	def export_a_action_func(self):
@@ -193,6 +198,21 @@ class mainForm(Ui_MainWindow):
 					queue_item.append(node)
 		self.mode_value.setText("Не удаленные")
 
+	def change_name_func(self):
+		if self.tableWidget.currentItem() is None:
+			return
+		row = self.tableWidget.currentItem().row()
+		shift = self.tableWidget.item(row, 4).text()
+		self.input_form = InputForm(self.registry, shift, True)
+
+	def change_value_func(self):
+		if self.tableWidget.currentItem() is None:
+			return
+		row = self.tableWidget.currentItem().row()
+		shift = self.tableWidget.item(row, 4).text()
+		self.input_form = InputForm(self.registry, shift, False)
+
+
 class Search(Ui_Form):
 
 	def __init__(self, parent):
@@ -257,6 +277,108 @@ class Search(Ui_Form):
 
 	def exit_func(self):
 		print("!!!")
+
+
+class InputForm(input_form.Ui_Form):
+
+	def __init__(self, reg, shift, isName):
+		input_form.Ui_Form.__init__(self)
+		self.window = QtWidgets.QDialog()
+		self.setupUi(self.window)
+		self.accept_button.clicked.connect(self.accept_function)
+		self.shift = int(shift)
+		self.reg = reg
+		self.isName = isName
+		self.cell = get_cell(self.shift, self.reg)
+		if isName:
+			self.type_value.setText("REG_SZ")
+			self.old_value.setText(self.cell.name)
+		else:
+			self.type_value.setText(self.cell.get_type())
+			self.old_value.setText(self.cell.get_data())
+		self.window.show()
+
+	def accept_function(self):
+		value = self.new_value.text()
+		self.shift = int(self.shift)
+		cell = get_cell(self.shift, self.reg)
+		if self.isName:
+			if abs(cell.size) < len(value) + 0x19:
+				self.raise_exception("Слишком длинное имя! Максимум {} байтов!", abs(cell.size) - 0x18)
+				return
+		elif cell.is_string():
+			value = value.replace("\\0", "\0") + "\0"
+			if cell.value_size < len(value):
+				self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size - 1)
+				return
+		elif cell.is_number():
+			hex_form = "0x" in value
+			if (cell.type == 4 or cell.type == 5) and hex_form:
+				if len(value) <= 10:
+					try:
+						value = binascii.a2b_hex(value.replace("0x", "").zfill(8))
+						value = bytearray(value)
+						value.reverse()
+						value = bytes(value)
+					except:
+						self.raise_exception("Некорректное шестнадцатеричное значение")
+						return
+				else:
+					self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+					return
+			elif (cell.type == 4 or cell.type == 5) and not hex_form:
+				try:
+					value = int(value)
+					if value > 0xFFFFFFFF:
+						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+						return
+					value = pack("I", value)
+				except:
+					self.raise_exception("Некорректное десятичное значение")
+					return
+			elif cell.type == 11 and hex_form:
+				if len(value) <= 18:
+					try:
+						value = binascii.a2b_hex(value.replace("0x", "").zfill(16))
+						value = bytearray(value)
+						value.reverse()
+						value = bytes(value)
+					except:
+						self.raise_exception("Некорректное шестнадцатеричное значение")
+						return
+				else:
+					self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+					return
+			elif cell.type == 11 and not hex_form:
+				try:
+					value = int(value)
+					if value > 0xFFFFFFFFFFFFFFFF:
+						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+						return
+					value = pack("Q", value)
+				except:
+					self.raise_exception("Некорректное десятичное значение")
+					return
+		else:
+			value = value.replace(" ", "")
+			if cell.value_size * 2 < len(value):
+				self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size)
+				return
+			try:
+				value = binascii.a2b_hex(value)
+			except:
+				self.raise_exception("Некорректное шестнадцатеричное значение")
+				return
+		prop = "name" if self.isName else "value"
+		if "changed" not in self.reg.keys():
+			self.reg["changed"] = {}
+		if self.shift not in self.reg["changed"].keys():
+			self.reg["changed"][self.shift] = {}
+		self.reg["changed"][self.shift][prop] = value
+		print(value)
+
+	def raise_exception(self, mask, data=""):
+		print(mask.format(data))
 
 ############## BEGIN ##############
 
@@ -409,9 +531,6 @@ class CellVK:
 		self.len_data = len_data  # длина данных
 		self.value = pointer  # данные или указатель на них
 		self.value_shift = pointer
-		# if self.value > 12320767 and not deleted:
-		# 	CellVK.error_count += 1
-		# 	pass
 		self.type = param_type  # тип данных {1..11}
 		self.flag = flag  # тип кодировки
 		self.isCorrect = True
@@ -433,8 +552,10 @@ class CellVK:
 		if self.isEmpty:
 			return
 		elif self.type == 4 or self.type == 5:
+			self.value_size = 4
 			return
 		elif self.len_data <= 4:
+			self.value_size = 4
 			self.value = pack("I", self.value)
 			if self.type == 1:
 				self.value = self.value.decode("ascii")
@@ -443,8 +564,9 @@ class CellVK:
 		else:
 			vs = self.value + main_block_size
 			size = unpack("i", buffer[vs:vs + 0x4])[0]
-		if self.type == 11 and abs(size) == 8:
-			value = unpack("q", buffer[vs + 0x4:vs + abs(size)])[0]
+			self.value_size = abs(size)
+		if self.type == 11:
+			value = unpack("q", buffer[vs + 0x4:vs + 0x4 + 0x8])[0]
 		if self.is_string():
 			pattern = str(self.len_data) + "s"
 			value = unpack(pattern, buffer[vs + 0x4:vs + 0x4 + self.len_data])[0] if size != 0 else ""
@@ -457,6 +579,9 @@ class CellVK:
 
 	def is_string(self):
 		return self.type == 1 or self.type == 2 or self.type == 6 or self.type == 7
+
+	def is_number(self):
+		return self.type == 4 or self.type == 5 or self.type == 11
 
 	def get_type(self):
 		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
