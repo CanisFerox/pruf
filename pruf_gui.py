@@ -306,11 +306,13 @@ class InputForm(input_form.Ui_Form):
 			if abs(cell.size) < len(value) + 0x19:
 				self.raise_exception("Слишком длинное имя! Максимум {} байтов!", abs(cell.size) - 0x18)
 				return
+			value = bytes(value, "ascii")
 		elif cell.is_string():
 			value = value.replace("\\0", "\0") + "\0"
 			if cell.value_size < len(value):
 				self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size - 1)
 				return
+			value = bytes(value, "ascii")
 		elif cell.is_number():
 			hex_form = "0x" in value
 			if (cell.type == 4 or cell.type == 5) and hex_form:
