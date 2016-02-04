@@ -8,6 +8,7 @@ import binascii
 import re
 from interface import Ui_MainWindow
 from search import Ui_Form
+from about import AboutUI
 import input_form
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QTreeWidgetItem, QTableWidgetItem
@@ -93,10 +94,12 @@ class mainForm(Ui_MainWindow):
 	def draw_tree(self):
 		if self.fname is None:
 			return
+		if self.treeWidget is not None:
+			self.treeWidget.clear()
 		header, _reg = load_hive(self.fname)
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name, header.shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name.replace("\0", ""), header.shift)
 		queue_sh = [header.shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
@@ -188,7 +191,7 @@ class mainForm(Ui_MainWindow):
 		self.search_window = Search(self)
 
 	def about_func(self):
-		pass
+		self.about_form = AboutForm()
 
 	def exit_func(self):
 		sys.exit()
@@ -326,6 +329,14 @@ class Search(Ui_Form):
 	def exit_func(self):
 		print("!!!")
 
+
+class AboutForm(AboutUI):
+
+	def __init__(self):
+		AboutUI.__init__(self)
+		self.window = QtWidgets.QDialog()
+		self.setupUi(self.window)
+		self.window.show()
 
 class InputForm(input_form.Ui_Form):
 
@@ -536,7 +547,7 @@ class CellNK:
 		result = "\r\n"
 		if is_machine:
 			result += "KEY \"{}\"\r\n".format(self.get_name(_registry).replace("\0", ""))
-			result += "Time: {}\r\n".format(str(self.timestamp))
+			result += "Time: {}, {}\r\n".format(str(self.timestamp), str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
 			result += "Keys: {}\r\n".format(str(self.count_subkey))
 			result += "Values: {}\r\n".format(str(self.count_value))
 		else:

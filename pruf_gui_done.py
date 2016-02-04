@@ -501,7 +501,41 @@ class Ui_Form(object):
         item = self.search_table.horizontalHeaderItem(1)
         item.setText(_translate("Form", "Полный путь"))
 
+class AboutUI(object):
+    def setupUi(self, Form):
+        Form.setObjectName("Form")
+        Form.resize(500, 125)
+        Form.setMinimumSize(QtCore.QSize(500, 125))
+        Form.setMaximumSize(QtCore.QSize(500, 125))
+        Form.setWindowFilePath("")
+        self.verticalLayout = QtWidgets.QVBoxLayout(Form)
+        self.verticalLayout.setObjectName("verticalLayout")
+        spacerItem = QtWidgets.QSpacerItem(20, 6, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem)
+        self.label = QtWidgets.QLabel(Form)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
+        self.label_2 = QtWidgets.QLabel(Form)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.label_3 = QtWidgets.QLabel(Form)
+        self.label_3.setObjectName("label_3")
+        self.verticalLayout.addWidget(self.label_3)
+        spacerItem1 = QtWidgets.QSpacerItem(20, 31, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem1)
+
+        self.retranslateUi(Form)
+        QtCore.QMetaObject.connectSlotsByName(Form)
+
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "О программе"))
+        self.label.setText(_translate("Form", "Python Registry Umformer (PRUF) GUI, ver 1.0"))
+        self.label_2.setText(_translate("Form", "Шалакин Родион Геннадьевич, 2016"))
+        self.label_3.setText(_translate("Form", "Научный руководитель: Бакланов Валентин Викторович"))
+
 ################################  END INTERFACE  ##################################
+
 class mainForm(Ui_MainWindow):
 	def __init__(self):
 		Ui_MainWindow.__init__(self)
@@ -578,10 +612,12 @@ class mainForm(Ui_MainWindow):
 	def draw_tree(self):
 		if self.fname is None:
 			return
+		if self.treeWidget is not None:
+			self.treeWidget.clear()
 		header, _reg = load_hive(self.fname)
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name, header.shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name.replace("\0", ""), header.shift)
 		queue_sh = [header.shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
@@ -673,7 +709,7 @@ class mainForm(Ui_MainWindow):
 		self.search_window = Search(self)
 
 	def about_func(self):
-		pass
+		self.about_form = AboutForm()
 
 	def exit_func(self):
 		sys.exit()
@@ -811,6 +847,14 @@ class Search(Ui_Form):
 	def exit_func(self):
 		print("!!!")
 
+
+class AboutForm(AboutUI):
+
+	def __init__(self):
+		AboutUI.__init__(self)
+		self.window = QtWidgets.QDialog()
+		self.setupUi(self.window)
+		self.window.show()
 
 class InputForm(UI_Input):
 
@@ -1021,7 +1065,7 @@ class CellNK:
 		result = "\r\n"
 		if is_machine:
 			result += "KEY \"{}\"\r\n".format(self.get_name(_registry).replace("\0", ""))
-			result += "Time: {}\r\n".format(str(self.timestamp))
+			result += "Time: {}, {}\r\n".format(str(self.timestamp), str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
 			result += "Keys: {}\r\n".format(str(self.count_subkey))
 			result += "Values: {}\r\n".format(str(self.count_value))
 		else:
