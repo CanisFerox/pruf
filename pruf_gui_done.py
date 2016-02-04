@@ -996,8 +996,9 @@ class CellNK:
 	error_count = 0
 	count = 0
 
-	def __init__(self, buffer):
+	def __init__(self, buffer, shift):
 		self.sign = None
+		self.shift = shift
 		if len(buffer) < 0x50:
 			self.isEmpty = True
 			return None
@@ -1062,22 +1063,26 @@ class CellNK:
 		self.values = result
 
 	def to_string(self, _registry, is_machine):
+		subkeys_count = len(get_subkeys(self.shift, _registry))
 		result = "\r\n"
 		if is_machine:
 			result += "KEY \"{}\"\r\n".format(self.get_name(_registry).replace("\0", ""))
 			result += "Time: {}, {}\r\n".format(str(self.timestamp), str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
-			result += "Keys: {}\r\n".format(str(self.count_subkey))
+			result += "Keys: {}\r\n".format(str(subkeys_count))
 			result += "Values: {}\r\n".format(str(self.count_value))
 		else:
 			result += "<<<<< Раздел: \"{}\" >>>>>\r\n".format(self.get_name(_registry).replace("\0", ""))
 			result += "Временная метка: {}\r\n".format(str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
-			result += "Всего подразделов: {}\r\n".format(str(self.count_subkey))
+			result += "Всего подразделов: {}\r\n".format(str(subkeys_count))
 			result += "Всего параметров: {}\r\n".format(str(self.count_value))
 		result += "\r\n"
 		return result
 
 	def get_name(self, _registry):
-		result = self.name
+		if get_cell(_registry[0].shift, _registry) != self:
+			result = self.name
+		else:
+			return _registry[0].name
 		cell = self
 		while cell is not None and cell.shift_parent != _registry[0].shift:
 			try:
@@ -1092,8 +1097,9 @@ class CellVK:
 	# error_count = 0
 	# count = 0
 
-	def __init__(self, buffer):
+	def __init__(self, buffer, shift):
 		self.sign = None
+		self.shift = shift
 		if len(buffer) < 0x18:
 			self.isEmpty = True
 			return None  # TODO вернуть пустую ячейку значения
@@ -1180,7 +1186,7 @@ class CellVK:
 			size = len(self.value)
 		return size
 
-	def get_data(self):
+	def get_data(self, is_machine=True):
 		if self.type == 4 or self.type == 5:
 			data = "0x" + str(hex(self.value))[2:].zfill(8)
 		elif self.type == 11:
@@ -1195,15 +1201,34 @@ class CellVK:
 				return self.value.replace("\0\0", pattern).replace("\0", "")
 			else:
 				try:
-					data = self.value.decode("ascii").replace("\0\0", pattern).replace("\0", "") if len(self.value) > 0 else ""
+					data = self.value.decode("UTF-16le").replace("\0\0", pattern).replace("\0", "") if len(self.value) > 0 else ""
 				except UnicodeDecodeError:
 					try:
 						data = self.value.decode("UTF-16").replace("\0\0", pattern) if len(self.value) > 0 else ""
 					except:
 						data = str(self.value)
 		else:
-			data = binascii.b2a_hex(self.value).decode("ascii")
-			data = re.sub(r'(..)', r'\1 ', data)
+			if is_machine:
+				data = binascii.b2a_hex(self.value).decode("ascii")
+				data = re.sub(r'(..)', r'\1 ', data)
+			else:
+				str_num = 0
+				data = "\n"
+				for i in range(0, int(len(self.value) / 0x10) + 1):
+					data += str(hex(str_num).replace("x", "")).zfill(8) + " | "
+					last = (i + 1) * 0x10 if (i + 1) * 0x10 < len(self.value) else len(self.value)
+					data += re.sub(r'(....)', r'\1 ', binascii.b2a_hex(self.value[i * 0x10: last]).decode("ascii").ljust(32))
+					data += "| "
+					try:
+						res = ""
+						temp = self.value[i * 0x10: last]
+						for i in bytes(temp):
+							res += chr(i) if i <= 128 and i != 0 else "."
+					except:
+						res = ""
+					data += res
+					data += "\r\n"
+					str_num += 0x10
 		return data
 
 	def to_string(self, is_machine):
@@ -1211,11 +1236,11 @@ class CellVK:
 			result = "VALUE \"{}\"\r\n".format(self.name)
 			result += "Size: {} bytes\r\n".format(str(self.get_data_size()))
 			result += "Type: {}\r\n".format(self.get_type())
-			result += "Data: \"{}\"\r\n".format(self.get_data())
+			result += "Data: \"{}\"\r\n".format(self.get_data(is_machine))
 		else:
 			result = "Имя параметра: \"{}\"\r\n".format(self.name)
 			result += "Тип: \"{}\"\r\n".format(self.get_type())
-			result += "Данные: \"{}\"\r\n".format(self.get_data())
+			result += "Данные: \"{}\"\r\n".format(self.get_data(is_machine))
 		result += "\r\n"
 		return result
 
@@ -1303,11 +1328,11 @@ def get_item(cell_type, head, buff):
 		return BinHeader(buff[head:head + 0x20]), 0x20
 	size = unpack("i", buff[head:head + 0x4])[0]
 	if cell_type == b'vk':
-		res = CellVK(buff[head:head + abs(size)])
+		res = CellVK(buff[head:head + abs(size)], head)
 		res.set_value(buff)
 		return res, abs(size)
 	if cell_type == b'nk':
-		res = CellNK(buff[head:head + abs(size)])
+		res = CellNK(buff[head:head + abs(size)], head)
 		res.set_vk_list(buff)
 		return res, abs(size)
 	if cell_type == b'ri' or cell_type == b'li':
@@ -1390,6 +1415,8 @@ def get_root(_registry, path):
 			return None
 	if len(path_sp) == 0:
 		return _registry[0].shift
+	if "CMI-CreateHive{" in path_sp[0]:
+		path_sp.pop(0)
 	queue = get_subkeys(_registry[0].shift, _registry)
 	cell_sh = None
 	while len(queue) > 0 and len(path_sp) > 0:
