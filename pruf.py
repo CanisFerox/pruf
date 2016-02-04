@@ -96,8 +96,9 @@ class CellNK:
 				try:
 					get_cell(self.shift_subkey, _registry)
 				except:
-					_registry[-1 * self.shift] = CellSubKeysRiLi(pack("i2sH", -8, b"li", 0))
-					self.shift_subkey = -1 * self.shift
+					return
+					# _registry[-1 * self.shift] = CellSubKeysRiLi(pack("i2sH", -8, b"li", 0))
+					# self.shift_subkey = -1 * self.shift
 			get_cell(self.shift_subkey, _registry).add_child(shift)
 
 	def set_vk_list(self, buffer):
@@ -513,6 +514,11 @@ def restore_deleted_keys(reg):
 		cell = get_cell(shift, reg)
 		if cell.sign == b'nk' and cell.is_deleted():
 			cell.name = "[DELETED] " + cell.name
+			try:
+				if get_cell(cell.shift_parent, reg).sign != b"nk":
+					continue
+			except:
+				continue
 			get_cell(cell.shift_parent, reg).add_child(shift, cell.shift_parent, reg)
 			set_parent_hdc(cell.shift_parent, reg)
 	return reg
@@ -521,6 +527,8 @@ def restore_deleted_keys(reg):
 def set_parent_hdc(shift, reg):
 	cell = get_cell(shift, reg)
 	cell.have_deleted = True
+	if cell.sign != b"nk":
+		return
 	if cell.shift_parent == reg[0].shift:
 		cell = get_cell(reg[0].shift, reg)
 		cell.have_deleted = True
