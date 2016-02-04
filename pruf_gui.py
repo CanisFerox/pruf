@@ -525,6 +525,12 @@ class CellNK:
 
 	def add_child(self, shift, parent_sh, _registry):
 		if not shift in get_subkeys(parent_sh, _registry):
+			if self.count_subkey == 0:
+				try:
+					get_cell(self.shift_subkey, _registry)
+				except:
+					_registry[-1 * self.shift] = CellSubKeysRiLi(pack("i2sH", -8, b"li", 0))
+					self.shift_subkey = -1 * self.shift
 			get_cell(self.shift_subkey, _registry).add_child(shift)
 
 	def set_vk_list(self, buffer):
@@ -626,9 +632,9 @@ class CellVK:
 		elif self.len_data <= 4:
 			self.value_size = 4
 			self.value = pack("I", self.value)
-			if self.type == 1:
-				self.value = self.value.decode("ascii")
-				return
+			# if self.type == 1:
+			# 	self.value = self.value.decode("ascii")
+			# 	return
 			return
 		else:
 			self.extended = True
@@ -655,8 +661,10 @@ class CellVK:
 
 	def get_type(self):
 		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
-		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
-		              "REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
+		"REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
+		"REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
+		if self.type > 11:
+			return "Error type:{}".format(self.type)
 		return value_type[self.type]
 
 	def get_data_size(self):
@@ -750,7 +758,10 @@ class CellSubKeysLfLh:
 		return self.subkeys[num][1]
 
 	def add_child(self, shift):
-		self.subkeys[self.count_subkey] = [shift, 0]
+		if len(self.subkeys) == self.count_subkey:
+			self.subkeys.append([shift, 0])
+		else:
+			self.subkeys[self.count_subkey] = [shift, 0]
 		self.count_subkey += 1
 
 class CellSubKeysRiLi:
@@ -776,7 +787,10 @@ class CellSubKeysRiLi:
 		return 0
 
 	def add_child(self, shift):
-		self.subkeys[self.count_subkey] = shift
+		if len(self.subkeys) == self.count_subkey:
+			self.subkeys.append(shift)
+		else:
+			self.subkeys[self.count_subkey] = shift
 		self.count_subkey += 1
 
 # def create_parser():
