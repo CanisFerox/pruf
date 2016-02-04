@@ -98,7 +98,11 @@ class mainForm(Ui_MainWindow):
 		header, _reg = load_hive(self.fname)
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name.replace("\0", ""),
+		name_arr = header.name.replace("\0", "").split("\\")
+		if name_arr[len(name_arr) - 1] == "":
+			name_arr.pop()
+		name = name_arr[len(name_arr) - 1]
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, name,
 		                                 header.shift)
 		queue_sh = [header.shift]
 		queue_item = [self.tree_root]
