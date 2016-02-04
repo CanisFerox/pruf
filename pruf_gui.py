@@ -66,7 +66,7 @@ class mainForm(Ui_MainWindow):
 					file.seek(key + 0x8)
 					type = self.registry["changed"][key]["type"]
 					if type == 0 or type == 1 or type == 2 or type == 3 or type == 6 or type == 7 \
-						or type == 8 or type == 9 or type == 10:
+							or type == 8 or type == 9 or type == 10:
 						a = file.write(pack("H", len(self.registry["changed"][key]["value"])))
 					if cell.extended:
 						file.seek(cell.value_shift + main_block_size + 0x4, 0)
@@ -74,7 +74,6 @@ class mainForm(Ui_MainWindow):
 						file.seek(key + 0x0C, 0)
 					a = file.write(self.registry["changed"][key]["value"])
 			file.close()
-
 
 	def reload_function(self):
 		if self.fname is None:
@@ -99,7 +98,8 @@ class mainForm(Ui_MainWindow):
 		header, _reg = load_hive(self.fname)
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name.replace("\0", ""), header.shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, header.name.replace("\0", ""),
+		                                 header.shift)
 		queue_sh = [header.shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
@@ -168,7 +168,8 @@ class mainForm(Ui_MainWindow):
 		path = get_cell(shift, self.registry).get_name(self.registry)
 		root = get_root(self.registry, path)
 		if root == None:
-			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути {}".format(path))
+			raise Exception(
+				"Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути {}".format(path))
 		umform(self.registry[0], self.registry, path, fname, True)
 		pass
 
@@ -183,7 +184,8 @@ class mainForm(Ui_MainWindow):
 		path = get_cell(shift, self.registry).get_name(self.registry)
 		root = get_root(self.registry, path)
 		if root == None:
-			raise Exception("Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути {}".format(path))
+			raise Exception(
+				"Ошибка при попытке выполнения переход от корневого раздела файла улья реестра по пути {}".format(path))
 		umform(self.registry[0], self.registry, path, fname, False)
 		pass
 
@@ -200,7 +202,8 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name,
+		                                 self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
@@ -218,7 +221,8 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name,
+		                                 self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
@@ -235,7 +239,8 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name, self.registry[0].shift)
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name,
+		                                 self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
 		queue_item = [self.tree_root]
 		while len(queue_sh) > 0:
@@ -265,7 +270,6 @@ class mainForm(Ui_MainWindow):
 
 
 class Search(Ui_Form):
-
 	def __init__(self, parent):
 		Ui_Form.__init__(self)
 		self.window = QtWidgets.QDialog()
@@ -303,13 +307,16 @@ class Search(Ui_Form):
 				queue_sh.append(child_sh)
 				if nk_name_enabled:
 					if search_str.lower() in str(child.name).replace("\0", "").lower():
-						row_num = self.add_search_row("Раздел: '{}'".format(child.name), child.get_name(registry), row_num)
+						row_num = self.add_search_row("Раздел: '{}'".format(child.name), child.get_name(registry),
+						                              row_num)
 				if vk_name_enabled or vk_value_enabled:
 					for i in range(0, len(child.values)):
 						cell_vk = get_cell(child.values[i], registry)
 						if (vk_name_enabled and search_str.lower() in str(cell_vk.name).replace("\0", "").lower()) \
-								or (vk_value_enabled and search_str.lower() in str(cell_vk.get_data()).replace("\0", "").lower()):
-							row_num = self.add_search_row("Параметр: '{}'".format(cell_vk.name), child.get_name(registry), row_num)
+								or (vk_value_enabled and search_str.lower() in str(cell_vk.get_data()).replace("\0",
+								                                                                               "").lower()):
+							row_num = self.add_search_row("Параметр: '{}'".format(cell_vk.name),
+							                              child.get_name(registry), row_num)
 		self.search_table.repaint()
 		self.status_label.setText("Найдено {} значений.".format(row_num))
 		pass
@@ -331,15 +338,14 @@ class Search(Ui_Form):
 
 
 class AboutForm(AboutUI):
-
 	def __init__(self):
 		AboutUI.__init__(self)
 		self.window = QtWidgets.QDialog()
 		self.setupUi(self.window)
 		self.window.show()
 
-class InputForm(input_form.Ui_Form):
 
+class InputForm(input_form.Ui_Form):
 	def __init__(self, reg, shift, isName):
 		input_form.Ui_Form.__init__(self)
 		self.window = QtWidgets.QDialog()
@@ -442,6 +448,7 @@ class InputForm(input_form.Ui_Form):
 	def raise_exception(self, mask, data=""):
 		self.error_label.setText(mask.format(data))
 
+
 ############## BEGIN ##############
 
 class RegistryHeader:
@@ -486,8 +493,10 @@ class CellNK:
 			return None
 		self.isEmpty = False
 		CellNK.count += 1
-		size, sign, flag, timestamp, _, shift_parent, count_subkey, _, shift_subkey = unpack("i2sHQ4sII4sI", buffer[:0x24])
-		count_value, values, shift_desk, shift_classname, _, len_keyname, len_classname = unpack("IIII20sHH", buffer[0x28:0x50])
+		size, sign, flag, timestamp, _, shift_parent, count_subkey, _, shift_subkey = unpack("i2sHQ4sII4sI",
+		                                                                                     buffer[:0x24])
+		count_value, values, shift_desk, shift_classname, _, len_keyname, len_classname = unpack("IIII20sHH",
+		                                                                                         buffer[0x28:0x50])
 		if sign != b'nk':
 			print("отсутствует сигнатура nk!")
 		self.deleted = False if size < 0 else True
@@ -555,12 +564,14 @@ class CellNK:
 		result = "\r\n"
 		if is_machine:
 			result += "KEY \"{}\"\r\n".format(self.get_name(_registry).replace("\0", ""))
-			result += "Time: {}, {}\r\n".format(str(self.timestamp), str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
+			result += "Time: {}, {}\r\n".format(str(self.timestamp),
+			                                    str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
 			result += "Keys: {}\r\n".format(str(subkeys_count))
 			result += "Values: {}\r\n".format(str(self.count_value))
 		else:
 			result += "<<<<< Раздел: \"{}\" >>>>>\r\n".format(self.get_name(_registry).replace("\0", ""))
-			result += "Временная метка: {}\r\n".format(str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
+			result += "Временная метка: {}\r\n".format(
+				str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
 			result += "Всего подразделов: {}\r\n".format(str(subkeys_count))
 			result += "Всего параметров: {}\r\n".format(str(self.count_value))
 		result += "\r\n"
@@ -661,8 +672,8 @@ class CellVK:
 
 	def get_type(self):
 		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
-		"REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
-		"REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
+		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
+		              "REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
 		if self.type > 11:
 			return "Error type:{}".format(self.type)
 		return value_type[self.type]
@@ -691,7 +702,8 @@ class CellVK:
 				return self.value.replace("\0\0", pattern).replace("\0", "")
 			else:
 				try:
-					data = self.value.decode("UTF-16le").replace("\0\0", pattern).replace("\0", "") if len(self.value) > 0 else ""
+					data = self.value.decode("UTF-16le").replace("\0\0", pattern).replace("\0", "") if len(
+						self.value) > 0 else ""
 				except UnicodeDecodeError:
 					try:
 						data = self.value.decode("UTF-16").replace("\0\0", pattern) if len(self.value) > 0 else ""
@@ -707,7 +719,8 @@ class CellVK:
 				for i in range(0, int(len(self.value) / 0x10) + 1):
 					data += str(hex(str_num).replace("x", "")).zfill(8) + " | "
 					last = (i + 1) * 0x10 if (i + 1) * 0x10 < len(self.value) else len(self.value)
-					data += re.sub(r'(....)', r'\1 ', binascii.b2a_hex(self.value[i * 0x10: last]).decode("ascii").ljust(32))
+					data += re.sub(r'(....)', r'\1 ',
+					               binascii.b2a_hex(self.value[i * 0x10: last]).decode("ascii").ljust(32))
 					data += "| "
 					try:
 						res = ""
@@ -764,6 +777,7 @@ class CellSubKeysLfLh:
 			self.subkeys[self.count_subkey] = [shift, 0]
 		self.count_subkey += 1
 
+
 class CellSubKeysRiLi:
 	def __init__(self, buffer):
 		size, sign, subkey_count = unpack("i2sH", buffer[0x0:0x8])
@@ -792,6 +806,7 @@ class CellSubKeysRiLi:
 		else:
 			self.subkeys[self.count_subkey] = shift
 		self.count_subkey += 1
+
 
 # def create_parser():
 # 	_parser = argparse.ArgumentParser(
@@ -943,6 +958,7 @@ def has_name(cell, name):
 	# 	return True
 	return name == cell.name
 
+
 def restore_deleted_keys(reg):
 	count = 0
 	for shift in reg.keys():
@@ -954,6 +970,7 @@ def restore_deleted_keys(reg):
 			get_cell(cell.shift_parent, reg).add_child(shift, cell.shift_parent, reg)
 			set_parent_hdc(cell.shift_parent, reg)
 	return reg
+
 
 def set_parent_hdc(shift, reg):
 	cell = get_cell(shift, reg)
@@ -980,6 +997,7 @@ def load_hive(hive):
 			registry[head] = reg_item
 		head += head_inc
 	return reg_header, registry
+
 
 def main():
 	# with open(ns.hive, "rb") as reg:  # считываем весь бинарный файл улья

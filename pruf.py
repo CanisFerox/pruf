@@ -8,6 +8,7 @@ import re
 
 main_block_size = 0x1000
 
+
 class RegistryHeader:
 	def __init__(self, buffer):
 		if len(buffer) != 0x70:
@@ -50,8 +51,10 @@ class CellNK:
 			return None
 		self.isEmpty = False
 		CellNK.count += 1
-		size, sign, flag, timestamp, _, shift_parent, count_subkey, _, shift_subkey = unpack("i2sHQ4sII4sI", buffer[:0x24])
-		count_value, values, shift_desk, shift_classname, _, len_keyname, len_classname = unpack("IIII20sHH", buffer[0x28:0x50])
+		size, sign, flag, timestamp, _, shift_parent, count_subkey, _, shift_subkey = unpack("i2sHQ4sII4sI",
+		                                                                                     buffer[:0x24])
+		count_value, values, shift_desk, shift_classname, _, len_keyname, len_classname = unpack("IIII20sHH",
+		                                                                                         buffer[0x28:0x50])
 		if sign != b'nk':
 			print("отсутствует сигнатура nk!")
 		self.deleted = False if size < 0 else True
@@ -119,12 +122,14 @@ class CellNK:
 		result = "\r\n"
 		if is_machine:
 			result += "KEY \"{}\"\r\n".format(self.get_name(_registry).replace("\0", ""))
-			result += "Time: {}, {}\r\n".format(str(self.timestamp), str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
+			result += "Time: {}, {}\r\n".format(str(self.timestamp),
+			                                    str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
 			result += "Keys: {}\r\n".format(str(subkeys_count))
 			result += "Values: {}\r\n".format(str(self.count_value))
 		else:
 			result += "<<<<< Раздел: \"{}\" >>>>>\r\n".format(self.get_name(_registry).replace("\0", ""))
-			result += "Временная метка: {}\r\n".format(str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
+			result += "Временная метка: {}\r\n".format(
+				str(datetime(1601, 1, 1) + timedelta(microseconds=self.timestamp / 10)))
 			result += "Всего подразделов: {}\r\n".format(str(subkeys_count))
 			result += "Всего параметров: {}\r\n".format(str(self.count_value))
 		result += "\r\n"
@@ -225,8 +230,8 @@ class CellVK:
 
 	def get_type(self):
 		value_type = ["REG_NONE", "REG_SZ", "REG_EXPAND_SZ", "REG_BINARY", "REG_DWORD", "REG_DWORD_BIG_ENDIAN",
-		"REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
-		"REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
+		              "REG_LINK", "REG_MULTI_SZ", "REG_RESOURCE_LIST", "REG_FULL_RESOURCE_DESCRIPTION",
+		              "REG_RESOURCE_REQUIREMENTS_LIST", "REG_QWORD"]
 		if self.type > 11:
 			return "Error type:{}".format(self.type)
 		return value_type[self.type]
@@ -255,7 +260,8 @@ class CellVK:
 				return self.value.replace("\0\0", pattern).replace("\0", "")
 			else:
 				try:
-					data = self.value.decode("UTF-16le").replace("\0\0", pattern).replace("\0", "") if len(self.value) > 0 else ""
+					data = self.value.decode("UTF-16le").replace("\0\0", pattern).replace("\0", "") if len(
+						self.value) > 0 else ""
 				except UnicodeDecodeError:
 					try:
 						data = self.value.decode("UTF-16").replace("\0\0", pattern) if len(self.value) > 0 else ""
@@ -271,7 +277,8 @@ class CellVK:
 				for i in range(0, int(len(self.value) / 0x10) + 1):
 					data += str(hex(str_num).replace("x", "")).zfill(8) + " | "
 					last = (i + 1) * 0x10 if (i + 1) * 0x10 < len(self.value) else len(self.value)
-					data += re.sub(r'(....)', r'\1 ', binascii.b2a_hex(self.value[i * 0x10: last]).decode("ascii").ljust(32))
+					data += re.sub(r'(....)', r'\1 ',
+					               binascii.b2a_hex(self.value[i * 0x10: last]).decode("ascii").ljust(32))
 					data += "| "
 					try:
 						res = ""
@@ -328,6 +335,7 @@ class CellSubKeysLfLh:
 			self.subkeys[self.count_subkey] = [shift, 0]
 		self.count_subkey += 1
 
+
 class CellSubKeysRiLi:
 	def __init__(self, buffer):
 		size, sign, subkey_count = unpack("i2sH", buffer[0x0:0x8])
@@ -367,7 +375,8 @@ def create_parser():
 	_parser.add_argument("--hive", required=True, help="Путь к файлу улью реестра ОС Windows.")
 	_parser.add_argument("-o", "--out", required=True, help="Имя файла для сохранения")
 	_parser.add_argument("-p", "--path", help="Путь для извлечения данных улья")
-	_parser.add_argument("-m", "--mode", required=True, choices=["M", "A"], help="Формат преобразованного файла, M - человекочитаемый формат, A - формат для последующей машинной обработки.")
+	_parser.add_argument("-m", "--mode", required=True, choices=["M", "A"],
+	                     help="Формат преобразованного файла, M - человекочитаемый формат, A - формат для последующей машинной обработки.")
 	return _parser
 
 
@@ -495,6 +504,7 @@ def get_root(_registry, path):
 def has_name(cell, name):
 	return name == cell.name
 
+
 def restore_deleted_keys(reg):
 	count = 0
 	for shift in reg.keys():
@@ -507,6 +517,7 @@ def restore_deleted_keys(reg):
 			set_parent_hdc(cell.shift_parent, reg)
 	return reg
 
+
 def set_parent_hdc(shift, reg):
 	cell = get_cell(shift, reg)
 	cell.have_deleted = True
@@ -515,6 +526,7 @@ def set_parent_hdc(shift, reg):
 		cell.have_deleted = True
 		return
 	set_parent_hdc(cell.shift_parent, reg)
+
 
 def main(ns):
 	registry = {}
