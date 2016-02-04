@@ -1107,10 +1107,14 @@ class CellNK:
 		return result
 
 	def get_name(self, _registry):
+		name_arr = _registry[0].name.replace("\0", "").split("\\")
+		if name_arr[len(name_arr) - 1] == "":
+			name_arr.pop()
+		name = name_arr[len(name_arr) - 1]
 		if get_cell(_registry[0].shift, _registry) != self:
 			result = self.name
 		else:
-			return _registry[0].name
+			return name
 		cell = self
 		while cell is not None and cell.shift_parent != _registry[0].shift:
 			try:
@@ -1118,7 +1122,7 @@ class CellNK:
 				result = cell.name + "\\" + result
 			except Exception:
 				cell = None
-		return _registry[0].name + "\\" + result
+		return name + "\\" + result
 
 
 class CellVK:
@@ -1386,14 +1390,19 @@ def get_item(cell_type, head, buff):
 
 def umform(reg_header, _registry, path, out, is_machine):
 	root_sh = get_root(_registry, path)
-	if root_sh == 0:
-		return None
+	if root_sh is None:
+		print("Не существует указанного пути '{}'".format(path))
+		return
 	filled = set()
 	errors = set()
 	queue = [root_sh]
-	with open(out, "a+") as file:
-		file.close()
-	with open(out, "w") as file:
+	try:
+		with open(out, "a+") as file:
+			file.close()
+	except:
+		print("У вас недостаточно прав для записи по пути {}".format(out))
+		return
+	with open(out, "w", encoding="UTF-16") as file:
 		while len(queue) > 0:
 			cell_sh = queue.pop(0)
 			if cell_sh in filled:
@@ -1405,8 +1414,11 @@ def umform(reg_header, _registry, path, out, is_machine):
 			cell = get_cell(cell_sh, _registry)
 			file.write(cell.to_string(_registry, is_machine))
 			for i in range(0, len(cell.values)):
-				cell_vk = get_cell(cell.values[i], _registry)
-				file.write(cell_vk.to_string(is_machine))
+				try:
+					cell_vk = get_cell(cell.values[i], _registry)
+					file.write(cell_vk.to_string(is_machine))
+				except:
+					continue
 			temp = get_subkeys(cell_sh, _registry)
 			temp.extend(queue)
 			queue = temp
@@ -1450,9 +1462,12 @@ def get_root(_registry, path):
 	path_sp = path.split("\\")
 	if path_sp[0] == '':
 		path_sp.pop(0)
-	for hive_name_part in _registry[0].name.split("\\"):
-		if hive_name_part != path_sp.pop(0):
-			return None
+	name_arr = _registry[0].name.replace("\0", "").split("\\")
+	if name_arr[len(name_arr) - 1] == "":
+		name_arr.pop()
+	reg_name = name_arr[len(name_arr) - 1]
+	if reg_name != path_sp.pop(0):
+		return None
 	if len(path_sp) == 0:
 		return _registry[0].shift
 	if "CMI-CreateHive{" in path_sp[0]:
@@ -1521,6 +1536,7 @@ def set_parent_hdc(shift, reg):
 ############## END ##############
 
 def load_hive(hive):
+	registry = {}
 	with open(hive, "rb") as reg:  # считываем весь бинарный файл улья
 		binary_reg = reg.read()
 	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
