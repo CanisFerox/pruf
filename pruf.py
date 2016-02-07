@@ -582,7 +582,7 @@ def restore_deleted_keys(reg):
 	except:
 		print("Во время восстановления удаленных ключей произошла ошибка, удаленные ключи отображаться не будут")
 		return reg
-	# print("{} - {}".format(count_all, count))
+	print("Всего обнаружено удаленных ключей: {}, из них восстановлено: {}".format(count_all, count))
 	reg.update(restored)
 	return reg
 
@@ -604,6 +604,7 @@ def set_parent_hdc(shift, reg):
 
 def main(ns):
 	registry = {}
+	print("Построение модели реестра...")
 	with open(ns.hive, "rb") as reg:  # считываем весь бинарный файл улья
 		binary_reg = reg.read()
 	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
@@ -615,7 +616,9 @@ def main(ns):
 		if cell_type is not None:
 			registry[head] = reg_item
 		head += head_inc
+	print("Восстановление удаленных ключей...")
 	registry = restore_deleted_keys(registry)
+	print("Трансформация файла-улья в текстовый вид...")
 	umform(reg_header, registry, ns.path, ns.out, ns.mode == "A")
 	pass
 
