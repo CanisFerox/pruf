@@ -675,6 +675,8 @@ class mainForm(Ui_MainWindow):
 		for value_sh in cell.values:
 			try:
 				value_cell = get_cell(value_sh, self.registry)
+				if value_cell.sign != b"vk":
+					continue
 			except KeyError:
 				continue
 			self.tableWidget.insertRow(row_num)
@@ -730,7 +732,11 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name,
+		name_arr = self.registry[0].name.replace("\0", "").split("\\")
+		if name_arr[len(name_arr) - 1] == "":
+			name_arr.pop()
+		name = name_arr[len(name_arr) - 1]
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, name,
 		                                 self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
 		queue_item = [self.tree_root]
@@ -749,7 +755,11 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name,
+		name_arr = self.registry[0].name.replace("\0", "").split("\\")
+		if name_arr[len(name_arr) - 1] == "":
+			name_arr.pop()
+		name = name_arr[len(name_arr) - 1]
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, name,
 		                                 self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
 		queue_item = [self.tree_root]
@@ -767,7 +777,11 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
-		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, self.registry[0].name,
+		name_arr = self.registry[0].name.replace("\0", "").split("\\")
+		if name_arr[len(name_arr) - 1] == "":
+			name_arr.pop()
+		name = name_arr[len(name_arr) - 1]
+		self.tree_root = self.add_parent(self.treeWidget.invisibleRootItem(), 0, name,
 		                                 self.registry[0].shift)
 		queue_sh = [self.registry[0].shift]
 		queue_item = [self.tree_root]
@@ -1060,16 +1074,21 @@ class CellNK:
 	def have_deleted_child(self):
 		return self.have_deleted
 
-	def add_child(self, shift, parent_sh, _registry):
-		if not shift in get_subkeys(parent_sh, _registry):
+	def add_child(self, shift, parent_sh, _registry, restored):
+		database = _registry if get_cell(parent_sh, _registry).shift_subkey > 0 else restored
+		if not shift in get_subkeys_for_restore(parent_sh, _registry, restored):
 			if self.count_subkey == 0:
 				try:
 					get_cell(self.shift_subkey, _registry)
 				except:
-					return
-					# _registry[-1 * self.shift] = CellSubKeysRiLi(pack("i2sH", -8, b"li", 0))
-					# self.shift_subkey = -1 * self.shift
-			get_cell(self.shift_subkey, _registry).add_child(shift)
+					restored[-1 * self.shift] = CellSubKeysRiLi(pack("i2sH", -8, b"li", 0))
+					self.shift_subkey = -1 * self.shift
+					get_cell(-1 * self.shift, restored).add_child(shift)
+					self.count_subkey += 1
+			else:
+				get_cell(self.shift_subkey, database).add_child(shift)
+		else:
+			pass
 
 	def set_vk_list(self, buffer):
 		if self.isEmpty:
@@ -1458,6 +1477,37 @@ def get_subkeys(parent_sh, _registry):
 	return queue
 
 
+def get_subkeys_for_restore(parent_sh, reg, res):
+	queue = []
+	parent = get_cell(parent_sh, reg)
+	if parent.sign == b'nk':
+		try:
+			if parent.shift_subkey > 0:
+				cell_list = get_cell(parent.shift_subkey, reg)
+			else:
+				cell_list = get_cell(parent.shift_subkey, res)
+		except KeyError:
+			return queue
+		for i in range(0, cell_list.count_subkey):
+			try:
+				if get_cell(cell_list.get_shift(i), reg).sign == b'nk':
+					queue.append(cell_list.get_shift(i))
+				else:
+					queue.extend(get_subkeys_for_restore(cell_list.get_shift(i), reg, res))
+			except KeyError:
+				pass
+	elif parent.sign == b'lf' or parent.sign == b'lh' or parent.sign == b'ri' or parent.sign == b'li':
+		for i in range(0, parent.count_subkey):
+			try:
+				if get_cell(parent.get_shift(i), reg).sign == b'nk':
+					queue.append(parent.get_shift(i))
+				else:
+					queue.extend(get_subkeys_for_restore(parent.get_shift(i), reg, res))
+			except KeyError:
+				pass
+	return queue
+
+
 def get_root(_registry, path):
 	path_sp = path.split("\\")
 	if path_sp[0] == '':
@@ -1505,24 +1555,40 @@ def has_name(cell, name):
 
 def restore_deleted_keys(reg):
 	count = 0
-	for shift in reg.keys():
-		if shift == 0 or shift == "changed":
-			continue
-		cell = get_cell(shift, reg)
-		if cell.sign == b'nk' and cell.is_deleted():
-			cell.name = "[DELETED] " + cell.name
-			try:
-				if get_cell(cell.shift_parent, reg).sign != b"nk":
-					continue
-			except:
+	count_all = 0
+	restored = {}
+	root_cell = get_cell(reg[0].shift, reg)
+	try:
+		for shift in reg.keys():
+			if shift == 0 or shift == "changed":
 				continue
-			get_cell(cell.shift_parent, reg).add_child(shift, cell.shift_parent, reg)
-			set_parent_hdc(cell.shift_parent, reg)
+			cell = get_cell(shift, reg)
+			if cell.sign == b'nk' and cell.is_deleted():
+				count_all += 1
+				if root_cell.timestamp < cell.timestamp:
+					continue
+				try:
+					if get_cell(cell.shift_parent, reg).sign != b"nk":
+						continue
+				except:
+					continue
+				get_cell(cell.shift_parent, reg).add_child(shift, cell.shift_parent, reg, restored)
+				set_parent_hdc(cell.shift_parent, reg)
+				cell.name = "[DELETED] " + cell.name
+				count += 1
+	except:
+		print("Во время восстановления удаленных ключей произошла ошибка, удаленные ключи отображаться не будут")
+		return reg
+	print("{} - {}".format(count_all, count))
+	reg.update(restored)
 	return reg
 
 
 def set_parent_hdc(shift, reg):
-	cell = get_cell(shift, reg)
+	try:
+		cell = get_cell(shift, reg)
+	except:
+		return
 	cell.have_deleted = True
 	if cell.sign != b"nk":
 		return
