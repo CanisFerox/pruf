@@ -582,7 +582,7 @@ def restore_deleted_keys(reg):
 	except:
 		print("Во время восстановления удаленных ключей произошла ошибка, удаленные ключи отображаться не будут")
 		return reg
-	print("{} - {}".format(count_all, count))
+	# print("{} - {}".format(count_all, count))
 	reg.update(restored)
 	return reg
 
