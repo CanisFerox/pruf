@@ -801,14 +801,14 @@ class mainForm(Ui_MainWindow):
 			return
 		row = self.tableWidget.currentItem().row()
 		shift = self.tableWidget.item(row, 4).text()
-		self.input_form = InputForm(self.registry, shift, True)
+		self.input_form = InputForm(self, self.registry, shift, True)
 
 	def change_value_func(self):
 		if self.tableWidget.currentItem() is None:
 			return
 		row = self.tableWidget.currentItem().row()
 		shift = self.tableWidget.item(row, 4).text()
-		self.input_form = InputForm(self.registry, shift, False)
+		self.input_form = InputForm(self, self.registry, shift, False)
 
 
 class Search(Ui_Form):
@@ -888,8 +888,9 @@ class AboutForm(AboutUI):
 
 
 class InputForm(UI_Input):
-	def __init__(self, reg, shift, isName):
+	def __init__(self, parent, reg, shift, isName):
 		UI_Input.__init__(self)
+		self.parent = parent
 		self.window = QtWidgets.QDialog()
 		self.setupUi(self.window)
 		self.accept_button.clicked.connect(self.accept_function)
@@ -911,7 +912,7 @@ class InputForm(UI_Input):
 		cell = get_cell(self.shift, self.reg)
 		if self.isName:
 			if abs(cell.size) < len(value) + 0x19:
-				self.raise_exception("Слишком длинное имя! Максимум {} байтов!", abs(cell.size) - 0x18)
+				self.raise_exception("Слишком длинное имя! Максимум {} байтов!", abs(cell.size) - 0x19)
 				return
 			value = bytes(value, "ascii")
 		elif cell.is_string():
@@ -978,13 +979,17 @@ class InputForm(UI_Input):
 			except:
 				self.raise_exception("Некорректное шестнадцатеричное значение")
 				return
-		prop = "name" if self.isName else "value"
+		property = "name" if self.isName else "value"
 		if "changed" not in self.reg.keys():
 			self.reg["changed"] = {}
 		if self.shift not in self.reg["changed"].keys():
 			self.reg["changed"][self.shift] = {}
-		self.reg["changed"][self.shift][prop] = value
+		self.reg["changed"][self.shift][property] = value
 		self.reg["changed"][self.shift]["type"] = cell.type
+		if self.isName:
+			self.reg[self.shift].name = value.decode("ascii")
+		else:
+			self.reg[self.shift].value = value
 		self.window.close()
 
 	def raise_exception(self, mask, data=""):
