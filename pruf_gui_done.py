@@ -638,6 +638,7 @@ class mainForm(Ui_MainWindow):
 		header, _reg = load_hive(self.fname)
 		_reg = restore_deleted_keys(_reg)
 		self.registry = _reg
+		self.clear_table()
 		self.treeWidget.collapseAll()
 
 	def open_action_func(self):
@@ -645,6 +646,7 @@ class mainForm(Ui_MainWindow):
 		if not fname[0]:
 			return
 		self.fname = fname[0]
+		self.clear_table()
 		self.draw_tree()
 
 	def draw_tree(self):
@@ -701,9 +703,7 @@ class mainForm(Ui_MainWindow):
 		self.timestamp.repaint()
 		self.cell_shift_value.setText(str(shift))
 		self.cell_shift_value.repaint()
-		# удаление строк таблицы с конца, т.к. при удалении первой строки таблица перестраивается
-		for i in reversed(range(0, self.tableWidget.rowCount())):
-			self.tableWidget.removeRow(i)
+		self.clear_table()
 		row_num = 0
 		for value_sh in cell.values:
 			try:
@@ -719,6 +719,11 @@ class mainForm(Ui_MainWindow):
 			self.tableWidget.setItem(row_num, 3, QTableWidgetItem(value_cell.get_data()))
 			self.tableWidget.setItem(row_num, 4, QTableWidgetItem(str(value_sh)))
 			row_num += 1
+
+	def clear_table(self):
+		# удаление строк таблицы с конца, т.к. при удалении первой строки таблица перестраивается
+		for i in reversed(range(0, self.tableWidget.rowCount())):
+			self.tableWidget.removeRow(i)
 
 	def export_a_action_func(self):
 		fname = QtWidgets.QFileDialog.getSaveFileName(self.window, 'Open file', '/home')
@@ -765,6 +770,7 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
+		self.clear_table()
 		name_arr = self.registry[0].name.replace("\0", "").split("\\")
 		if name_arr[len(name_arr) - 1] == "":
 			name_arr.pop()
@@ -788,6 +794,7 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
+		self.clear_table()
 		name_arr = self.registry[0].name.replace("\0", "").split("\\")
 		if name_arr[len(name_arr) - 1] == "":
 			name_arr.pop()
@@ -810,6 +817,7 @@ class mainForm(Ui_MainWindow):
 		if self.tree_root is None:
 			return
 		self.treeWidget.clear()
+		self.clear_table()
 		name_arr = self.registry[0].name.replace("\0", "").split("\\")
 		if name_arr[len(name_arr) - 1] == "":
 			name_arr.pop()
@@ -890,7 +898,12 @@ class Search(Ui_Form):
 						                              row_num)
 				if vk_name_enabled or vk_value_enabled:
 					for i in range(0, len(child.values)):
-						cell_vk = get_cell(child.values[i], registry)
+						try:
+							cell_vk = get_cell(child.values[i], registry)
+							if cell_vk.sign != b"vk":
+								continue
+						except:
+							continue
 						if (vk_name_enabled and search_str.lower() in str(cell_vk.name).replace("\0", "").lower()) \
 								or (vk_value_enabled and search_str.lower() in str(cell_vk.get_data()).replace("\0",
 								                                                                               "").lower()):
