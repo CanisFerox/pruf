@@ -14,6 +14,8 @@ main_block_size = 0x1000
 registry = {}
 
 
+################ CHANGE VALUE ################
+
 class UI_Input(object):
 	def setupUi(self, Form):
 		Form.setObjectName("Form")
@@ -80,10 +82,15 @@ class UI_Input(object):
 		spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 		self.horizontalLayout.addItem(spacerItem2)
 		self.accept_button = QtWidgets.QPushButton(Form)
-		self.accept_button.setMinimumSize(QtCore.QSize(180, 0))
-		self.accept_button.setMaximumSize(QtCore.QSize(200, 16777215))
+		self.accept_button.setMinimumSize(QtCore.QSize(150, 0))
+		self.accept_button.setMaximumSize(QtCore.QSize(150, 27))
 		self.accept_button.setObjectName("accept_button")
 		self.horizontalLayout.addWidget(self.accept_button)
+		self.exit_button = QtWidgets.QPushButton(Form)
+		self.exit_button.setMinimumSize(QtCore.QSize(150, 27))
+		self.exit_button.setMaximumSize(QtCore.QSize(150, 27))
+		self.exit_button.setObjectName("exit_button")
+		self.horizontalLayout.addWidget(self.exit_button)
 		spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 		self.horizontalLayout.addItem(spacerItem3)
 		self.verticalLayout.addLayout(self.horizontalLayout)
@@ -100,7 +107,10 @@ class UI_Input(object):
 		self.old_name.setText(_translate("Form", "Старое значение"))
 		self.new_name.setText(_translate("Form", "Новое значение"))
 		self.accept_button.setText(_translate("Form", "Применить"))
+		self.exit_button.setText(_translate("Form", "Отмена"))
 
+
+########### MAIN WINDOW #############
 
 class Ui_MainWindow(object):
 	def setupUi(self, MainWindow):
@@ -397,6 +407,8 @@ class Ui_MainWindow(object):
 		self.renew_action.setText(_translate("MainWindow", "Обновить"))
 
 
+####### SEARCH ########
+
 class Ui_Form(object):
 	def setupUi(self, Form):
 		Form.setObjectName("Form")
@@ -405,8 +417,8 @@ class Ui_Form(object):
 		Form.setMinimumSize(QtCore.QSize(640, 480))
 		self.verticalLayout_3 = QtWidgets.QVBoxLayout(Form)
 		self.verticalLayout_3.setObjectName("verticalLayout_3")
-		self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-		self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+		self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
+		self.horizontalLayout_3.setObjectName("horizontalLayout_3")
 		self.verticalLayout_2 = QtWidgets.QVBoxLayout()
 		self.verticalLayout_2.setObjectName("verticalLayout_2")
 		self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -438,6 +450,8 @@ class Ui_Form(object):
 		self.clear_button.setObjectName("clear_button")
 		self.horizontalLayout.addWidget(self.clear_button)
 		self.verticalLayout_2.addLayout(self.horizontalLayout)
+		self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+		self.horizontalLayout_2.setObjectName("horizontalLayout_2")
 		self.status_label = QtWidgets.QLabel(Form)
 		sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
 		sizePolicy.setHorizontalStretch(0)
@@ -446,8 +460,14 @@ class Ui_Form(object):
 		self.status_label.setSizePolicy(sizePolicy)
 		self.status_label.setText("")
 		self.status_label.setObjectName("status_label")
-		self.verticalLayout_2.addWidget(self.status_label)
-		self.horizontalLayout_2.addLayout(self.verticalLayout_2)
+		self.horizontalLayout_2.addWidget(self.status_label)
+		self.exit_button = QtWidgets.QPushButton(Form)
+		self.exit_button.setMinimumSize(QtCore.QSize(85, 27))
+		self.exit_button.setMaximumSize(QtCore.QSize(85, 27))
+		self.exit_button.setObjectName("exit_button")
+		self.horizontalLayout_2.addWidget(self.exit_button)
+		self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+		self.horizontalLayout_3.addLayout(self.verticalLayout_2)
 		self.verticalLayout = QtWidgets.QVBoxLayout()
 		self.verticalLayout.setObjectName("verticalLayout")
 		self.checkBox = QtWidgets.QCheckBox(Form)
@@ -462,8 +482,8 @@ class Ui_Form(object):
 		self.checkBox_3.setChecked(True)
 		self.checkBox_3.setObjectName("checkBox_3")
 		self.verticalLayout.addWidget(self.checkBox_3)
-		self.horizontalLayout_2.addLayout(self.verticalLayout)
-		self.verticalLayout_3.addLayout(self.horizontalLayout_2)
+		self.horizontalLayout_3.addLayout(self.verticalLayout)
+		self.verticalLayout_3.addLayout(self.horizontalLayout_3)
 		self.search_table = QtWidgets.QTableWidget(Form)
 		sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 		sizePolicy.setHorizontalStretch(100)
@@ -497,6 +517,7 @@ class Ui_Form(object):
 		Form.setWindowTitle(_translate("Form", "Поиск"))
 		self.seach_button.setText(_translate("Form", "Поиск"))
 		self.clear_button.setText(_translate("Form", "Очистить"))
+		self.exit_button.setText(_translate("Form", "Отмена"))
 		self.checkBox.setText(_translate("Form", "В именах разделов"))
 		self.checkBox_2.setText(_translate("Form", "В именах параметров"))
 		self.checkBox_3.setText(_translate("Form", "В значениях параметров"))
@@ -509,9 +530,9 @@ class Ui_Form(object):
 class AboutUI(object):
 	def setupUi(self, Form):
 		Form.setObjectName("Form")
-		Form.resize(500, 125)
-		Form.setMinimumSize(QtCore.QSize(500, 125))
-		Form.setMaximumSize(QtCore.QSize(500, 125))
+		Form.resize(500, 150)
+		Form.setMinimumSize(QtCore.QSize(500, 150))
+		Form.setMaximumSize(QtCore.QSize(500, 150))
 		Form.setWindowFilePath("")
 		self.verticalLayout = QtWidgets.QVBoxLayout(Form)
 		self.verticalLayout.setObjectName("verticalLayout")
@@ -526,8 +547,19 @@ class AboutUI(object):
 		self.label_3 = QtWidgets.QLabel(Form)
 		self.label_3.setObjectName("label_3")
 		self.verticalLayout.addWidget(self.label_3)
-		spacerItem1 = QtWidgets.QSpacerItem(20, 31, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+		spacerItem1 = QtWidgets.QSpacerItem(20, 14, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 		self.verticalLayout.addItem(spacerItem1)
+		self.horizontalLayout = QtWidgets.QHBoxLayout()
+		self.horizontalLayout.setObjectName("horizontalLayout")
+		spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+		self.horizontalLayout.addItem(spacerItem2)
+		self.exit_button = QtWidgets.QPushButton(Form)
+		self.exit_button.setMaximumSize(QtCore.QSize(85, 30))
+		self.exit_button.setObjectName("exit_button")
+		self.horizontalLayout.addWidget(self.exit_button)
+		spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+		self.horizontalLayout.addItem(spacerItem3)
+		self.verticalLayout.addLayout(self.horizontalLayout)
 
 		self.retranslateUi(Form)
 		QtCore.QMetaObject.connectSlotsByName(Form)
@@ -538,6 +570,7 @@ class AboutUI(object):
 		self.label.setText(_translate("Form", "Python Registry Umformer (PRUF) GUI, ver 1.0"))
 		self.label_2.setText(_translate("Form", "Шалакин Родион Геннадьевич, 2016"))
 		self.label_3.setText(_translate("Form", "Научный руководитель: Бакланов Валентин Викторович"))
+		self.exit_button.setText(_translate("Form", "Ok"))
 
 
 ################################  END INTERFACE  ##################################
@@ -819,7 +852,11 @@ class Search(Ui_Form):
 		self.setupUi(self.window)
 		self.seach_button.clicked.connect(self.search_func)
 		self.clear_button.clicked.connect(self.clear_func)
+		self.exit_button.clicked.connect(self.close_function)
 		self.window.show()
+
+	def close_function(self):
+		self.window.close()
 
 	def search_func(self):
 		nk_name_enabled = self.checkBox.isChecked()
@@ -884,7 +921,11 @@ class AboutForm(AboutUI):
 		AboutUI.__init__(self)
 		self.window = QtWidgets.QDialog()
 		self.setupUi(self.window)
+		self.exit_button.clicked.connect(self.close_func)
 		self.window.show()
+
+	def close_func(self):
+		self.window.close()
 
 
 class InputForm(UI_Input):
@@ -894,6 +935,7 @@ class InputForm(UI_Input):
 		self.window = QtWidgets.QDialog()
 		self.setupUi(self.window)
 		self.accept_button.clicked.connect(self.accept_function)
+		self.exit_button.clicked.connect(self.close_func)
 		self.shift = int(shift)
 		self.reg = reg
 		self.isName = isName
@@ -905,6 +947,9 @@ class InputForm(UI_Input):
 			self.type_value.setText(self.cell.get_type())
 			self.old_value.setText(self.cell.get_data())
 		self.window.show()
+
+	def close_func(self):
+		self.window.close()
 
 	def accept_function(self):
 		value = self.new_value.text()

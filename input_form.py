@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'input_form.ui'
 #
-# Created: Tue Feb  2 15:22:27 2016
+# Created: Fri Feb 12 23:43:55 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -75,10 +75,15 @@ class Ui_Form(object):
         spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem2)
         self.accept_button = QtWidgets.QPushButton(Form)
-        self.accept_button.setMinimumSize(QtCore.QSize(180, 0))
-        self.accept_button.setMaximumSize(QtCore.QSize(200, 16777215))
+        self.accept_button.setMinimumSize(QtCore.QSize(150, 0))
+        self.accept_button.setMaximumSize(QtCore.QSize(150, 27))
         self.accept_button.setObjectName("accept_button")
         self.horizontalLayout.addWidget(self.accept_button)
+        self.exit_button = QtWidgets.QPushButton(Form)
+        self.exit_button.setMinimumSize(QtCore.QSize(150, 27))
+        self.exit_button.setMaximumSize(QtCore.QSize(150, 27))
+        self.exit_button.setObjectName("exit_button")
+        self.horizontalLayout.addWidget(self.exit_button)
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem3)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -94,4 +99,5 @@ class Ui_Form(object):
         self.old_name.setText(_translate("Form", "Старое значение"))
         self.new_name.setText(_translate("Form", "Новое значение"))
         self.accept_button.setText(_translate("Form", "Применить"))
+        self.exit_button.setText(_translate("Form", "Отмена"))
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'search.ui'
 #
-# Created: Mon Feb  1 04:58:29 2016
+# Created: Fri Feb 12 23:51:15 2016
 #      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,8 +17,8 @@ class Ui_Form(object):
         Form.setMinimumSize(QtCore.QSize(640, 480))
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(Form)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -50,6 +50,8 @@ class Ui_Form(object):
         self.clear_button.setObjectName("clear_button")
         self.horizontalLayout.addWidget(self.clear_button)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.status_label = QtWidgets.QLabel(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -58,8 +60,14 @@ class Ui_Form(object):
         self.status_label.setSizePolicy(sizePolicy)
         self.status_label.setText("")
         self.status_label.setObjectName("status_label")
-        self.verticalLayout_2.addWidget(self.status_label)
-        self.horizontalLayout_2.addLayout(self.verticalLayout_2)
+        self.horizontalLayout_2.addWidget(self.status_label)
+        self.exit_button = QtWidgets.QPushButton(Form)
+        self.exit_button.setMinimumSize(QtCore.QSize(85, 27))
+        self.exit_button.setMaximumSize(QtCore.QSize(85, 27))
+        self.exit_button.setObjectName("exit_button")
+        self.horizontalLayout_2.addWidget(self.exit_button)
+        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout_3.addLayout(self.verticalLayout_2)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.checkBox = QtWidgets.QCheckBox(Form)
@@ -74,8 +82,8 @@ class Ui_Form(object):
         self.checkBox_3.setChecked(True)
         self.checkBox_3.setObjectName("checkBox_3")
         self.verticalLayout.addWidget(self.checkBox_3)
-        self.horizontalLayout_2.addLayout(self.verticalLayout)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout_3.addLayout(self.verticalLayout)
+        self.verticalLayout_3.addLayout(self.horizontalLayout_3)
         self.search_table = QtWidgets.QTableWidget(Form)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(100)
@@ -109,6 +117,7 @@ class Ui_Form(object):
         Form.setWindowTitle(_translate("Form", "Поиск"))
         self.seach_button.setText(_translate("Form", "Поиск"))
         self.clear_button.setText(_translate("Form", "Очистить"))
+        self.exit_button.setText(_translate("Form", "Отмена"))
         self.checkBox.setText(_translate("Form", "В именах разделов"))
         self.checkBox_2.setText(_translate("Form", "В именах параметров"))
         self.checkBox_3.setText(_translate("Form", "В значениях параметров"))

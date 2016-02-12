@@ -8,7 +8,7 @@ import binascii
 import re
 from interface import Ui_MainWindow
 from search import Ui_Form
-from about import AboutUI
+import about
 import input_form
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QTreeWidgetItem, QTableWidgetItem
@@ -295,7 +295,11 @@ class Search(Ui_Form):
 		self.setupUi(self.window)
 		self.seach_button.clicked.connect(self.search_func)
 		self.clear_button.clicked.connect(self.clear_func)
+		self.exit_button.clicked.connect(self.close_function)
 		self.window.show()
+
+	def close_function(self):
+		self.window.close()
 
 	def search_func(self):
 		nk_name_enabled = self.checkBox.isChecked()
@@ -355,21 +359,26 @@ class Search(Ui_Form):
 		print("!!!")
 
 
-class AboutForm(AboutUI):
+class AboutForm(about.Ui_Form):
 	def __init__(self):
-		AboutUI.__init__(self)
+		about.Ui_Form.__init__(self)
 		self.window = QtWidgets.QDialog()
 		self.setupUi(self.window)
+		self.exit_button.clicked.connect(self.close_func)
 		self.window.show()
 
+	def close_func(self):
+		self.window.close()
 
-class InputForm(UI_Input):
+
+class InputForm(input_form.Ui_Form):
 	def __init__(self, parent, reg, shift, isName):
-		UI_Input.__init__(self)
+		input_form.Ui_Form.__init__(self)
 		self.parent = parent
 		self.window = QtWidgets.QDialog()
 		self.setupUi(self.window)
 		self.accept_button.clicked.connect(self.accept_function)
+		self.exit_button.clicked.connect(self.close_func)
 		self.shift = int(shift)
 		self.reg = reg
 		self.isName = isName
@@ -381,6 +390,9 @@ class InputForm(UI_Input):
 			self.type_value.setText(self.cell.get_type())
 			self.old_value.setText(self.cell.get_data())
 		self.window.show()
+
+	def close_func(self):
+		self.window.close()
 
 	def accept_function(self):
 		value = self.new_value.text()
