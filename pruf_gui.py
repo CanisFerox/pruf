@@ -585,7 +585,7 @@ class CellNK:
 		if not shift in get_subkeys_for_restore(parent_sh, _registry, restored):
 			if self.count_subkey == 0:
 				try:
-					get_cell(self.shift_subkey, _registry)
+					get_cell(self.shift_subkey, _registry).add_child(shift)
 				except:
 					restored[-1 * self.shift] = CellSubKeysRiLi(pack("i2sH", -8, b"li", 0))
 					self.shift_subkey = -1 * self.shift
