@@ -382,10 +382,10 @@ def create_parser():
 		description="Программа производит преобразование указанной ветви бинарного файла улья реестра Windows в текстовый вид.",
 		epilog="Created by Canis (canis.ferox@yandex.ru)"
 	)
-	_parser.add_argument("--hive", required=True, help="Путь к файлу улью реестра ОС Windows.")
-	_parser.add_argument("-o", "--out", required=True, help="Имя файла для сохранения")
-	_parser.add_argument("-p", "--path", help="Путь для извлечения данных улья")
-	_parser.add_argument("-m", "--mode", required=True, choices=["M", "A"],
+	_parser.add_argument("-f", required=True, help="Путь к файлу улью реестра ОС Windows.")
+	_parser.add_argument("-o", help="Имя файла для сохранения")
+	_parser.add_argument("-p", help="Путь для извлечения данных улья")
+	_parser.add_argument("-m", choices=["M", "A"],
 	                     help="Формат преобразованного файла, M - человекочитаемый формат, A - формат для последующей машинной обработки.")
 	return _parser
 
@@ -426,13 +426,20 @@ def get_item(cell_type, head, buff):
 
 
 def umform(reg_header, _registry, path, out, is_machine):
+	if path is None or len(path) == 0:
+		path = "\\"
 	root_sh = get_root(_registry, path)
 	if root_sh is None:
 		print("Не существует указанного пути '{}'".format(path))
 		return
+	print("     Корень извлекаемого куста {}...".format(get_cell(root_sh, _registry).get_name(_registry)))
 	filled = set()
 	errors = set()
 	queue = [root_sh]
+	if is_machine and (out is None or out == ''):
+		out = "out_a"
+	elif not is_machine and (out is None or out == ''):
+		out = "out_m"
 	try:
 		with open(out, "a+") as file:
 			file.close()
@@ -459,6 +466,7 @@ def umform(reg_header, _registry, path, out, is_machine):
 			temp = get_subkeys(cell_sh, _registry)
 			temp.extend(queue)
 			queue = temp
+	print("Результаты сохранены в файле {}".format(out))
 	pass
 
 
@@ -534,7 +542,8 @@ def get_root(_registry, path):
 	if name_arr[len(name_arr) - 1] == "":
 		name_arr.pop()
 	reg_name = name_arr[len(name_arr) - 1]
-	if reg_name != path_sp.pop(0):
+	fnp = path_sp.pop(0)
+	if (reg_name != fnp and fnp != '') or (fnp == '' and len(path_sp) > 0):
 		return None
 	if len(path_sp) == 0:
 		return _registry[0].shift
@@ -605,7 +614,7 @@ def set_parent_hdc(shift, reg):
 def main(ns):
 	registry = {}
 	print("Построение модели реестра...")
-	with open(ns.hive, "rb") as reg:  # считываем весь бинарный файл улья
+	with open(ns.f, "rb") as reg:  # считываем весь бинарный файл улья
 		binary_reg = reg.read()
 	reg_header = RegistryHeader(binary_reg[:0x70])  # считываем сигнатуру файла улья
 	registry[0] = reg_header
@@ -619,7 +628,7 @@ def main(ns):
 	print("Восстановление удаленных ключей...")
 	registry = restore_deleted_keys(registry)
 	print("Трансформация файла-улья в текстовый вид...")
-	umform(reg_header, registry, ns.path, ns.out, ns.mode == "A")
+	umform(reg_header, registry, ns.p, ns.o, ns.m != "M")
 	pass
 
 
