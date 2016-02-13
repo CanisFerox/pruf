@@ -976,7 +976,7 @@ class InputForm(UI_Input):
 		elif cell.is_string():
 			value = value.replace("\\0", "\0") + "\0"
 			if cell.value_size / 2 - 1 < len(value):
-				self.raise_exception("Слишком длинное значение! Максимум {} символов!", cell.value_size / 2 - 1)
+				self.raise_exception("Слишком длинное значение! Максимум {} символов!", int(cell.value_size / 2 - 2))
 				return
 			value = bytes(value, "UTF-16LE")
 		elif cell.is_number():
@@ -1304,6 +1304,8 @@ class CellVK:
 
 	def get_data(self, is_machine=True):
 		if self.type == 4 or self.type == 5:
+			if isinstance(self.value, bytes):
+				self.value = unpack("I", self.value)[0]
 			data = "0x" + str(hex(self.value))[2:].zfill(8)
 		elif self.type == 11:
 			if isinstance(self.value, bytes):
