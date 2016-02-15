@@ -13,6 +13,142 @@ from datetime import datetime, timedelta
 main_block_size = 0x1000
 registry = {}
 
+################ CHANGE VALUE HEX ################
+
+class UI_Input_Hex(object):
+    def setupUi(self, Form):
+        Form.setObjectName("Form")
+        Form.resize(800, 400)
+        Form.setMinimumSize(QtCore.QSize(800, 250))
+        Form.setMaximumSize(QtCore.QSize(800, 600))
+        self.verticalLayout = QtWidgets.QVBoxLayout(Form)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.info_label = QtWidgets.QLabel(Form)
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.info_label.setFont(font)
+        self.info_label.setWordWrap(True)
+        self.info_label.setObjectName("info_label")
+        self.verticalLayout.addWidget(self.info_label)
+        self.error_label = QtWidgets.QLabel(Form)
+        self.error_label.setMinimumSize(QtCore.QSize(500, 0))
+        self.error_label.setText("")
+        self.error_label.setObjectName("error_label")
+        self.verticalLayout.addWidget(self.error_label)
+        self.value_table = QtWidgets.QTableWidget(Form)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.value_table.sizePolicy().hasHeightForWidth())
+        self.value_table.setSizePolicy(sizePolicy)
+        self.value_table.setAutoScroll(True)
+        self.value_table.setShowGrid(True)
+        self.value_table.setWordWrap(False)
+        self.value_table.setCornerButtonEnabled(True)
+        self.value_table.setObjectName("value_table")
+        self.value_table.setColumnCount(17)
+        self.value_table.setRowCount(0)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(2, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(3, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(4, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(5, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(6, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(7, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(8, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(9, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(10, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(11, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(12, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(13, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(14, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(15, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.value_table.setHorizontalHeaderItem(16, item)
+        self.value_table.horizontalHeader().setVisible(True)
+        self.value_table.horizontalHeader().setCascadingSectionResizes(True)
+        self.value_table.horizontalHeader().setDefaultSectionSize(35)
+        self.value_table.horizontalHeader().setMinimumSectionSize(35)
+        self.value_table.horizontalHeader().setStretchLastSection(True)
+        self.verticalLayout.addWidget(self.value_table)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
+        self.accept_button = QtWidgets.QPushButton(Form)
+        self.accept_button.setMinimumSize(QtCore.QSize(150, 0))
+        self.accept_button.setMaximumSize(QtCore.QSize(150, 27))
+        self.accept_button.setObjectName("accept_button")
+        self.horizontalLayout.addWidget(self.accept_button)
+        self.exit_button = QtWidgets.QPushButton(Form)
+        self.exit_button.setMinimumSize(QtCore.QSize(150, 27))
+        self.exit_button.setMaximumSize(QtCore.QSize(150, 27))
+        self.exit_button.setObjectName("exit_button")
+        self.horizontalLayout.addWidget(self.exit_button)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem1)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+
+        self.retranslateUi(Form)
+        QtCore.QMetaObject.connectSlotsByName(Form)
+
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "Изменение параметра"))
+        self.info_label.setText(_translate("Form", "Изменение значения параметра возможно только в пределах выделенной для его хранения (в файле улье) памяти."))
+        item = self.value_table.horizontalHeaderItem(0)
+        item.setText(_translate("Form", "0"))
+        item = self.value_table.horizontalHeaderItem(1)
+        item.setText(_translate("Form", "1"))
+        item = self.value_table.horizontalHeaderItem(2)
+        item.setText(_translate("Form", "2"))
+        item = self.value_table.horizontalHeaderItem(3)
+        item.setText(_translate("Form", "3"))
+        item = self.value_table.horizontalHeaderItem(4)
+        item.setText(_translate("Form", "4"))
+        item = self.value_table.horizontalHeaderItem(5)
+        item.setText(_translate("Form", "5"))
+        item = self.value_table.horizontalHeaderItem(6)
+        item.setText(_translate("Form", "6"))
+        item = self.value_table.horizontalHeaderItem(7)
+        item.setText(_translate("Form", "7"))
+        item = self.value_table.horizontalHeaderItem(8)
+        item.setText(_translate("Form", "8"))
+        item = self.value_table.horizontalHeaderItem(9)
+        item.setText(_translate("Form", "9"))
+        item = self.value_table.horizontalHeaderItem(10)
+        item.setText(_translate("Form", "a"))
+        item = self.value_table.horizontalHeaderItem(11)
+        item.setText(_translate("Form", "b"))
+        item = self.value_table.horizontalHeaderItem(12)
+        item.setText(_translate("Form", "c"))
+        item = self.value_table.horizontalHeaderItem(13)
+        item.setText(_translate("Form", "d"))
+        item = self.value_table.horizontalHeaderItem(14)
+        item.setText(_translate("Form", "e"))
+        item = self.value_table.horizontalHeaderItem(15)
+        item.setText(_translate("Form", "f"))
+        item = self.value_table.horizontalHeaderItem(16)
+        item.setText(_translate("Form", "ASCII"))
+        self.accept_button.setText(_translate("Form", "Применить"))
+        self.exit_button.setText(_translate("Form", "Отмена"))
 
 ################ CHANGE VALUE ################
 
@@ -848,8 +984,17 @@ class mainForm(Ui_MainWindow):
 		if self.tableWidget.currentItem() is None:
 			return
 		row = self.tableWidget.currentItem().row()
-		shift = self.tableWidget.item(row, 4).text()
-		self.input_form = InputForm(self, self.registry, shift, False)
+		shift = int(self.tableWidget.item(row, 4).text())
+		try:
+			cell = get_cell(shift, self.registry)
+		except:
+			return
+		if cell.sign != b"vk":
+			return
+		if not cell.is_string() and not cell.is_number():
+			self.input_form = InputFormHex(self, self.registry, shift)
+		else:
+			self.input_form = InputForm(self, self.registry, shift, False)
 
 
 class Search(Ui_Form):
@@ -940,6 +1085,155 @@ class AboutForm(AboutUI):
 	def close_func(self):
 		self.window.close()
 
+class InputFormHex(UI_Input_Hex):
+	def __init__(self, parent, reg, shift):
+		UI_Input.__init__(self)
+		self.parent = parent
+		self.window = QtWidgets.QDialog()
+		self.setupUi(self.window)
+		self.accept_button.clicked.connect(self.accept_function)
+		self.exit_button.clicked.connect(self.close_func)
+		self.shift = shift
+		self.reg = reg
+		self.cell = get_cell(self.shift, self.reg)
+		row_num = 0
+		table_shift = []
+		data = self.cell.get_data().replace(" ", "")
+		correction = 1 if len(data) % (0x10*2) > 0 else 0
+		ascii_str = ""
+		for i in range(0, int(len(data) / 0x10 / 2) + correction):
+			self.value_table.insertRow(row_num)
+			table_shift.append("0x" + str(hex(row_num * 0x10)).replace("0x", "0").zfill(8))
+			for j in range(0, 30, 2):
+				if self.cell.len_data <= i*0x10 + int(j / 2):
+					continue
+				char = unpack("B", binascii.a2b_hex(data[i*0x10+j:i*0x10+j+2]))[0]
+				ascii_str += chr(char) if chr(char).isalnum() or chr(char) in "!@#$%^&*()_+|{}[];:'\",<.>/?`~№" else "."
+			self.value_table.setItem(row_num, 0, QTableWidgetItem(data[i*2*0x10+0 : i*2*0x10+2]))
+			self.value_table.setItem(row_num, 1, QTableWidgetItem(data[i*2*0x10+2 : i*2*0x10+4]))
+			self.value_table.setItem(row_num, 2, QTableWidgetItem(data[i*2*0x10+4 : i*2*0x10+6]))
+			self.value_table.setItem(row_num, 3, QTableWidgetItem(data[i*2*0x10+6 : i*2*0x10+8]))
+			self.value_table.setItem(row_num, 4, QTableWidgetItem(data[i*2*0x10+8 : i*2*0x10+10]))
+			self.value_table.setItem(row_num, 5, QTableWidgetItem(data[i*2*0x10+10 : i*2*0x10+12]))
+			self.value_table.setItem(row_num, 6, QTableWidgetItem(data[i*2*0x10+12 : i*2*0x10+14]))
+			self.value_table.setItem(row_num, 7, QTableWidgetItem(data[i*2*0x10+14 : i*2*0x10+16]))
+			self.value_table.setItem(row_num, 8, QTableWidgetItem(data[i*2*0x10+16 : i*2*0x10+18]))
+			self.value_table.setItem(row_num, 9, QTableWidgetItem(data[i*2*0x10+18 : i*2*0x10+20]))
+			self.value_table.setItem(row_num, 10, QTableWidgetItem(data[i*2*0x10+20 : i*2*0x10+22]))
+			self.value_table.setItem(row_num, 11, QTableWidgetItem(data[i*2*0x10+22 : i*2*0x10+24]))
+			self.value_table.setItem(row_num, 12, QTableWidgetItem(data[i*2*0x10+24 : i*2*0x10+26]))
+			self.value_table.setItem(row_num, 13, QTableWidgetItem(data[i*2*0x10+26 : i*2*0x10+28]))
+			self.value_table.setItem(row_num, 14, QTableWidgetItem(data[i*2*0x10+28 : i*2*0x10+30]))
+			self.value_table.setItem(row_num, 15, QTableWidgetItem(data[i*2*0x10+30 : i*2*0x10+32]))
+			self.value_table.setItem(row_num, 16, QTableWidgetItem(ascii_str))
+			ascii_str = ""
+			row_num += 1
+		self.value_table.setVerticalHeaderLabels(table_shift)
+		self.window.show()
+
+	def close_func(self):
+		self.window.close()
+
+	def accept_function(self):
+		value = self.new_value.text()
+		self.shift = int(self.shift)
+		cell = get_cell(self.shift, self.reg)
+		if self.isName:
+			if abs(cell.size) < len(value) + 0x19:
+				self.raise_exception("Слишком длинное имя! Максимум {} байтов!", abs(cell.size) - 0x19)
+				return
+			value = bytes(value, "ascii")
+		elif cell.is_string():
+			value = value.replace("\\0", "\0") + "\0"
+			if cell.value_size / 2 - 1 < len(value):
+				self.raise_exception("Слишком длинное значение! Максимум {} символов!", int(cell.value_size / 2 - 2))
+				return
+			value = bytes(value, "UTF-16LE")
+		elif cell.is_number():
+			hex_form = "0x" in value
+			if (cell.type == 4 or cell.type == 5) and hex_form:
+				if len(value) <= 10:
+					try:
+						value = binascii.a2b_hex(value.replace("0x", "").zfill(8))
+						value = bytearray(value)
+						if cell.type == 4:
+							value.reverse()
+						value = bytes(value)
+					except:
+						self.raise_exception("Некорректное шестнадцатеричное значение")
+						return
+				else:
+					self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+					return
+			elif (cell.type == 4 or cell.type == 5) and not hex_form:
+				try:
+					value = int(value)
+					if value > 0xFFFFFFFF:
+						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+						return
+					if cell.type == 4:
+						value = pack("<I", value)
+					elif cell.type == 5:
+						value = pack(">I", value)
+					else:
+						self.raise_exception("Некорректное значение")
+						return
+				except:
+					self.raise_exception("Некорректное десятичное значение")
+					return
+			elif cell.type == 11 and hex_form:
+				if len(value) <= 18:
+					try:
+						value = binascii.a2b_hex(value.replace("0x", "").zfill(16))
+						value = bytearray(value)
+						value.reverse()
+						value = bytes(value)
+					except:
+						self.raise_exception("Некорректное шестнадцатеричное значение")
+						return
+				else:
+					self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+					return
+			elif cell.type == 11 and not hex_form:
+				try:
+					value = int(value)
+					if value > 0xFFFFFFFFFFFFFFFF:
+						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+						return
+					value = pack("Q", value)
+				except:
+					self.raise_exception("Некорректное десятичное значение")
+					return
+		else:
+			value = value.replace(" ", "")
+			if cell.value_size * 2 < len(value):
+				self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size)
+				return
+			try:
+				value = binascii.a2b_hex(value)
+			except:
+				self.raise_exception("Некорректное шестнадцатеричное значение")
+				return
+		property = "name" if self.isName else "value"
+		if "changed" not in self.reg.keys():
+			self.reg["changed"] = {}
+		if self.shift not in self.reg["changed"].keys():
+			self.reg["changed"][self.shift] = {}
+		self.reg["changed"][self.shift][property] = value
+		self.reg["changed"][self.shift]["type"] = cell.type
+		if self.isName:
+			self.reg[self.shift].name = value.decode("ascii")
+		else:
+			if cell.type == 5:  # коррекция для big_endian
+				value = bytearray(value)
+				value = value.reverse()
+				value = bytes(value)
+			self.reg[self.shift].value = value
+		self.window.close()
+
+	def raise_exception(self, mask, data=""):
+		self.error_label.setText(mask.format(data))
+
 
 class InputForm(UI_Input):
 	def __init__(self, parent, reg, shift, isName):
@@ -949,7 +1243,7 @@ class InputForm(UI_Input):
 		self.setupUi(self.window)
 		self.accept_button.clicked.connect(self.accept_function)
 		self.exit_button.clicked.connect(self.close_func)
-		self.shift = int(shift)
+		self.shift = shift
 		self.reg = reg
 		self.isName = isName
 		self.cell = get_cell(self.shift, self.reg)
