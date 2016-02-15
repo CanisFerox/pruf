@@ -1226,8 +1226,8 @@ class InputForm(UI_Input):
 			value = bytes(value, "ascii")
 		elif cell.is_string():
 			value = value.replace("\\0", "\0") + "\0"
-			if cell.value_size / 2 - 1 < len(value):
-				self.raise_exception("Слишком длинное значение! Максимум {} символов!", int(cell.value_size / 2 - 2))
+			if cell.value_size / 2 < len(value):
+				self.raise_exception("Слишком длинное значение! Максимум {} символов!", int(cell.value_size / 2 - 1))
 				return
 			value = bytes(value, "UTF-16LE")
 		elif cell.is_number():
