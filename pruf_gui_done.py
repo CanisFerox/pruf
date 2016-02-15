@@ -986,7 +986,8 @@ class InputForm(UI_Input):
 					try:
 						value = binascii.a2b_hex(value.replace("0x", "").zfill(8))
 						value = bytearray(value)
-						value.reverse()
+						if cell.type == 4:
+							value.reverse()
 						value = bytes(value)
 					except:
 						self.raise_exception("Некорректное шестнадцатеричное значение")
@@ -1000,7 +1001,13 @@ class InputForm(UI_Input):
 					if value > 0xFFFFFFFF:
 						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
 						return
-					value = pack("I", value)
+					if cell.type == 4:
+						value = pack("<I", value)
+					elif cell.type == 5:
+						value = pack(">I", value)
+					else:
+						self.raise_exception("Некорректное значение")
+						return
 				except:
 					self.raise_exception("Некорректное десятичное значение")
 					return
@@ -1047,6 +1054,10 @@ class InputForm(UI_Input):
 		if self.isName:
 			self.reg[self.shift].name = value.decode("ascii")
 		else:
+			if cell.type == 5:  # коррекция для big_endian
+				value = bytearray(value)
+				value = value.reverse()
+				value = bytes(value)
 			self.reg[self.shift].value = value
 		self.window.close()
 
@@ -1123,13 +1134,14 @@ class CellNK:
 		self.len_keyname = len_keyname  # длина имени ключа
 		self.len_classname = len_classname  # длина имени класса
 		try:
-			self.name = name.decode("ascii") if flag == 0x20 else name.decode("UTF-8")
+			self.name = name.decode("ascii") if flag == 0x20 else name.decode("UTF-16le")
 		except:
 			CellNK.error_count += 1
 			try:
-				self.name = name.decode("ascii") if flag != 0x20 else name.decode("UTF-8")
+				self.name = name.decode("ascii") if flag != 0x20 else name.decode("UTF-16le")
 			except:
 				pass
+		pass
 
 	def is_deleted(self):
 		return self.deleted
@@ -1254,6 +1266,11 @@ class CellVK:
 			return
 		elif self.type == 4 or self.type == 5:
 			self.value_size = 4
+			self.value = pack("I", self.value)
+			if self.type == 5:
+				self.value = unpack(">I", self.value)[0]
+			else:
+				self.value = unpack("<I", self.value)[0]
 			return
 		elif self.len_data <= 4:
 			self.value_size = 4
@@ -1333,7 +1350,8 @@ class CellVK:
 			else:
 				str_num = 0
 				data = "\n"
-				for i in range(0, int(len(self.value) / 0x10) + 1):
+				corrector = 1 if len(self.value) % 0x10 > 0 else 0
+				for i in range(0, int(len(self.value) / 0x10) + corrector):
 					data += str(hex(str_num).replace("x", "")).zfill(8) + " | "
 					last = (i + 1) * 0x10 if (i + 1) * 0x10 < len(self.value) else len(self.value)
 					data += re.sub(r'(....)', r'\1 ',
@@ -1343,7 +1361,7 @@ class CellVK:
 						res = ""
 						temp = self.value[i * 0x10: last]
 						for i in bytes(temp):
-							res += chr(i) if i <= 128 and i != 0 else "."
+							res += chr(i) if chr(i).isalnum() or chr(i) in "!@#$%^&*()_+|{}[];:'\",<.>/?`~№" else "."
 					except:
 						res = ""
 					data += res
@@ -1486,7 +1504,7 @@ def umform(reg_header, _registry, path, out, is_machine):
 	except:
 		print("У вас недостаточно прав для записи по пути {}".format(out))
 		return
-	with open(out, "w", encoding="UTF-16") as file:
+	with open(out, "w", encoding="UTF-8") as file:
 		while len(queue) > 0:
 			cell_sh = queue.pop(0)
 			if cell_sh in filled:
