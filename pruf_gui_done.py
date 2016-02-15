@@ -1105,7 +1105,7 @@ class InputFormHex(UI_Input_Hex):
 			self.value_table.insertRow(row_num)
 			table_shift.append("0x" + str(hex(row_num * 0x10)).replace("0x", "0").zfill(8))
 			for j in range(0, 30, 2):
-				if self.cell.len_data <= i*0x10 + int(j / 2):
+				if int(len(data) / 2) <= i*0x10 + int(j / 2):
 					continue
 				char = unpack("B", binascii.a2b_hex(data[i*0x10+j:i*0x10+j+2]))[0]
 				ascii_str += chr(char) if chr(char).isalnum() or chr(char) in "!@#$%^&*()_+|{}[];:'\",<.>/?`~№" else "."
@@ -1128,107 +1128,64 @@ class InputFormHex(UI_Input_Hex):
 			self.value_table.setItem(row_num, 16, QTableWidgetItem(ascii_str))
 			ascii_str = ""
 			row_num += 1
+		correction = 1 if (abs(self.cell.size) - 4) % 0x10 > 0 else 0
+		if int(self.cell.value_size / 0x10) + correction > row_num:
+			for i in range(row_num, int(self.cell.value_size / 0x10) + correction):
+				self.value_table.insertRow(i)
+				table_shift.append("0x" + str(hex(i * 0x10)).replace("0x", "0").zfill(8))
 		self.value_table.setVerticalHeaderLabels(table_shift)
+		self.raise_exception("Для хранения выделено {} байт.", self.cell.value_size)
+		# self.info_label.setText(self.info_label.text() + " Для хранения выделено {} байт.".format(abs(self.cell.size()) - 4))
 		self.window.show()
 
 	def close_func(self):
 		self.window.close()
 
 	def accept_function(self):
-		value = self.new_value.text()
-		self.shift = int(self.shift)
 		cell = get_cell(self.shift, self.reg)
-		if self.isName:
-			if abs(cell.size) < len(value) + 0x19:
-				self.raise_exception("Слишком длинное имя! Максимум {} байтов!", abs(cell.size) - 0x19)
-				return
-			value = bytes(value, "ascii")
-		elif cell.is_string():
-			value = value.replace("\\0", "\0") + "\0"
-			if cell.value_size / 2 - 1 < len(value):
-				self.raise_exception("Слишком длинное значение! Максимум {} символов!", int(cell.value_size / 2 - 2))
-				return
-			value = bytes(value, "UTF-16LE")
-		elif cell.is_number():
-			hex_form = "0x" in value
-			if (cell.type == 4 or cell.type == 5) and hex_form:
-				if len(value) <= 10:
-					try:
-						value = binascii.a2b_hex(value.replace("0x", "").zfill(8))
-						value = bytearray(value)
-						if cell.type == 4:
-							value.reverse()
-						value = bytes(value)
-					except:
-						self.raise_exception("Некорректное шестнадцатеричное значение")
-						return
-				else:
-					self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
+		if cell.is_string():
+			self.raise_exception("Ошибка, обработка строкового параметра как бинарного! Перезапустите программу без сохранения изменений!")
+			return
+		if cell.is_number():
+			self.raise_exception("Ошибка, обработка числового параметра как бинарного! Перезапустите программу без сохранения изменений!")
+			return
+		value = {}
+		value["value"] = ""
+		value["tail"] = ""
+		pointer = "value"
+		old_value = cell.get_data().replace(" ", "")
+		for i in range(0, self.value_table.rowCount()):
+			for j in range(0, 16):
+				temp = self.value_table.item(i, j).text()
+				if len(temp) == 0 or temp == " ":
+					pointer = "tail"
+				if not (len(temp) == len(old_value[i*0x10*2+j*2: i*0x10*2+j*2+2]) or len(temp) == 0 or len(temp) == 2):
+					self.raise_exception("Ошибка! Значение в каждой ячейке должно быть равным 1 байту! Смещение {}", "0x" + str(hex(i * 0x10 + j)).replace("0x", "").zfill(8))
 					return
-			elif (cell.type == 4 or cell.type == 5) and not hex_form:
 				try:
-					value = int(value)
-					if value > 0xFFFFFFFF:
-						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
-						return
-					if cell.type == 4:
-						value = pack("<I", value)
-					elif cell.type == 5:
-						value = pack(">I", value)
-					else:
-						self.raise_exception("Некорректное значение")
-						return
+					binascii.a2b_hex(temp)
 				except:
-					self.raise_exception("Некорректное десятичное значение")
+					self.raise_exception("Некорректное шестнадцатеричное значение по смещению {}", "0x" + str(hex(i * 0x10 + j)).replace("0x", "").zfill(8))
 					return
-			elif cell.type == 11 and hex_form:
-				if len(value) <= 18:
-					try:
-						value = binascii.a2b_hex(value.replace("0x", "").zfill(16))
-						value = bytearray(value)
-						value.reverse()
-						value = bytes(value)
-					except:
-						self.raise_exception("Некорректное шестнадцатеричное значение")
-						return
-				else:
-					self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
-					return
-			elif cell.type == 11 and not hex_form:
-				try:
-					value = int(value)
-					if value > 0xFFFFFFFFFFFFFFFF:
-						self.raise_exception("Значение выходит за допустимый диапазон {}", cell.get_type())
-						return
-					value = pack("Q", value)
-				except:
-					self.raise_exception("Некорректное десятичное значение")
-					return
-		else:
-			value = value.replace(" ", "")
-			if cell.value_size * 2 < len(value):
-				self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size)
-				return
-			try:
-				value = binascii.a2b_hex(value)
-			except:
-				self.raise_exception("Некорректное шестнадцатеричное значение")
-				return
-		property = "name" if self.isName else "value"
+				value[pointer] += temp
+		if value["value"] == old_value:
+			self.window.close()
+			return
+		if cell.value_size * 2 < len(value["value"]):
+			self.raise_exception("Слишком длинное значение! Максимум {} байтов!", cell.value_size)
+			return
+		try:
+			result = binascii.a2b_hex(value["value"])
+		except:
+			self.raise_exception("Некорректное шестнадцатеричное значение")
+			return
 		if "changed" not in self.reg.keys():
 			self.reg["changed"] = {}
 		if self.shift not in self.reg["changed"].keys():
 			self.reg["changed"][self.shift] = {}
-		self.reg["changed"][self.shift][property] = value
+		self.reg["changed"][self.shift]["value"] = result
 		self.reg["changed"][self.shift]["type"] = cell.type
-		if self.isName:
-			self.reg[self.shift].name = value.decode("ascii")
-		else:
-			if cell.type == 5:  # коррекция для big_endian
-				value = bytearray(value)
-				value = value.reverse()
-				value = bytes(value)
-			self.reg[self.shift].value = value
+		self.reg[self.shift].value = result
 		self.window.close()
 
 	def raise_exception(self, mask, data=""):
@@ -1577,7 +1534,7 @@ class CellVK:
 			self.extended = True
 			vs = self.value + main_block_size
 			size = unpack("i", buffer[vs:vs + 0x4])[0]
-			self.value_size = abs(size)
+			self.value_size = abs(size) - 4
 		if self.type == 11:
 			value = unpack("q", buffer[vs + 0x4:vs + 0x4 + 0x8])[0]
 		if self.is_string():
